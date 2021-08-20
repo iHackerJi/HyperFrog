@@ -153,13 +153,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DriverEntry.c" />
-    <ClCompile Include="vt.c" />
+    <ClCompile Include="vt\vt.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ExportFunction.h" />
     <ClInclude Include="PublicHeader.h" />
-    <ClInclude Include="vt.h" />
     <ClInclude Include="vt\ia32.h" />
-    <ClInclude Include="vt\ia32_defines_only.h" />
+    <ClInclude Include="vt\vt.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

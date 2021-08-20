@@ -17,13 +17,13 @@
       <UniqueIdentifier>{8E41214B-6785-4CFE-B992-037D68949A14}</UniqueIdentifier>
       <Extensions>inf;inv;inx;mof;mc;</Extensions>
     </Filter>
-    <Filter Include="VT">
+    <Filter Include="Driver Files\VT">
       <UniqueIdentifier>{365bae1f-608b-4b17-91eb-2572c201e5ff}</UniqueIdentifier>
     </Filter>
-    <Filter Include="VT\Vt_Source">
+    <Filter Include="Driver Files\VT\Vt_Source">
       <UniqueIdentifier>{d163d5e7-df72-4c6f-a168-04258a3a822e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="VT\Vt_Header">
+    <Filter Include="Driver Files\VT\Vt_Header">
       <UniqueIdentifier>{10b6430a-982c-4c2a-b5e7-7ec5582dcaff}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -31,22 +31,22 @@
     <ClCompile Include="DriverEntry.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vt.c">
-      <Filter>VT\Vt_Source</Filter>
+    <ClCompile Include="vt\vt.c">
+      <Filter>Driver Files\VT\Vt_Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vt.h">
-      <Filter>VT\Vt_Header</Filter>
-    </ClInclude>
     <ClInclude Include="PublicHeader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vt\ia32.h">
-      <Filter>VT\Vt_Header</Filter>
+      <Filter>Driver Files\VT\Vt_Header</Filter>
     </ClInclude>
-    <ClInclude Include="vt\ia32_defines_only.h">
-      <Filter>VT\Vt_Header</Filter>
+    <ClInclude Include="vt\vt.h">
+      <Filter>Driver Files\VT\Vt_Header</Filter>
+    </ClInclude>
+    <ClInclude Include="ExportFunction.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
