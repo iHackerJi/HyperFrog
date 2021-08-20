@@ -70,6 +70,8 @@ enum Msr {
 	kIa32TscAux = 0xC0000103,
 };
 
+
+
 //------------------------------
 
 
@@ -175,4 +177,44 @@ typedef union _Ia32FeatureControlMsr {
 		unsigned reserved3 : 32;            //!< [16:63]
 	} fields;
 }Ia32FeatureControlMsr,*pIa32FeatureControlMsr;
+
+
+typedef union _EptPointer {
+	ULONG64 all;
+	struct {
+		ULONG64 memory_type : 3;                      //!< [0:2]
+		ULONG64 page_walk_length : 3;                 //!< [3:5]
+		ULONG64 enable_accessed_and_dirty_flags : 1;  //!< [6]
+		ULONG64 reserved1 : 5;                        //!< [7:11]
+		ULONG64 pml4_address : 36;                    //!< [12:48-1]
+		ULONG64 reserved2 : 16;                       //!< [48:63]
+	} fields;
+}EptPointer, *pEptPointer;
+
+/// See: BASIC VMX INFORMATION
+typedef union _Ia32VmxBasicMsr {
+	unsigned __int64 all;
+	struct {
+		unsigned revision_identifier : 31;    //!< [0:30]
+		unsigned reserved1 : 1;               //!< [31]
+		unsigned region_size : 12;            //!< [32:43]
+		unsigned region_clear : 1;            //!< [44]
+		unsigned reserved2 : 3;               //!< [45:47]
+		unsigned supported_ia64 : 1;          //!< [48]
+		unsigned supported_dual_moniter : 1;  //!< [49]
+		unsigned memory_type : 4;             //!< [50:53]
+		unsigned vm_exit_report : 1;          //!< [54]
+		unsigned vmx_capability_hint : 1;     //!< [55]
+		unsigned reserved3 : 8;               //!< [56:63]
+	} fields;
+}Ia32VmxBasicMsr, *pIa32VmxBasicMsr;
+
+
 //----------------------------------
+
+//struct
+typedef struct _VmControlStructure {
+	unsigned long revision_identifier;
+	unsigned long vmx_abort_indicator;
+	unsigned long data[1];  //!< Implementation-specific format.
+}VmControlStructure, *pVmControlStructure;

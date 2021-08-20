@@ -41,12 +41,23 @@ BOOLEAN		CR0_VMXisSuppor() {
 	return FALSE;
 }
 
+PVOID  FrogExAllocatePool(ULONG Size) {
+	PVOID  ResultAddr = 	ExAllocatePoolWithTag(NonPagedPool, Size, FrogTag);
+	if (ResultAddr != NULL) 
+		RtlZeroMemory(ResultAddr, Size);
+	
 
+	return	ResultAddr;
+}	
+
+void		FrogExFreePool(PULONG_PTR	FreeAddr) {
+	ExFreePoolWithTag(FreeAddr, FrogTag);
+}
 
 // ↑ ToolsFunction--------------------------------------------------------
 //--------------------------------------------------------------------------
 
-
+//设置一些位以支持虚拟化
 void		Frog_SetBitToEnableHyper() {
 
 	//此位要置1否则不能执行VMXON
@@ -63,6 +74,7 @@ void		Frog_SetBitToEnableHyper() {
 
 }
 
+//检查是否支持虚拟化
 BOOLEAN		Frog_IsSupportHyper() {
 
 	if (		CPUID_VMXIsSupport()		&&
@@ -76,13 +88,90 @@ BOOLEAN		Frog_IsSupportHyper() {
 
 }
 
-void Frog_AllocateHyperRegion() {
 
+//创建VMX管理结构
+BOOLEAN Forg_AllocateForgVmxRegion() {
+	ULONG		CountOfProcessor = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+	ULONG		FrogsVmxSize = sizeof(FrogVmx) * CountOfProcessor;
+	
+	pForgVmxEntrys = FrogExAllocatePool(FrogsVmxSize);
 
-
+	if (pForgVmxEntrys == NULL)
+		return FALSE;
+	
+	return TRUE;
 }
 
+//创建VMCS、VMXON、BITMAP区域
+FrogRetCode Frog_AllocateHyperRegion() {
 
+	ULONG		CpuNumber = 	KeGetCurrentProcessorNumber();
+	pFrogVmx		pForgVmxEntry = &pForgVmxEntrys[CpuNumber];
+	PULONG_PTR	FreeAddrStart=NULL;
+	PULONG_PTR	FreeAddrEnd = NULL;
+
+	pForgVmxEntry->ProcessorNumber = CpuNumber;
+	
+	pForgVmxEntry->VmxOnArea = FrogExAllocatePool(PAGE_SIZE);
+
+	pForgVmxEntry->VmxVmcsArea = FrogExAllocatePool(PAGE_SIZE);
+
+	pForgVmxEntry->VmxBitMapArea = FrogExAllocatePool(PAGE_SIZE);
+	
+	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize, FrogTag);
+
+
+	if (
+		pForgVmxEntry->VmxOnArea == NULL			 || 
+		pForgVmxEntry->VmxVmcsArea == NULL		 ||
+		pForgVmxEntry->VmxBitMapArea == NULL		 ||
+		pForgVmxEntry->VmxHostStackArea == NULL
+		)	goto _AllocateHyperFreePool;
+
+
+	pForgVmxEntry->VmxOnAreaPhysicalAddr = 	MmGetPhysicalAddress(pForgVmxEntry->VmxOnArea);
+	pForgVmxEntry->VmxVmcsAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxVmcsArea);
+	pForgVmxEntry->VmxBitMapAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxBitMapArea);
+
+
+	return	FrogSuccess;
+
+_AllocateHyperFreePool:
+
+	FreeAddrStart = (PULONG_PTR)&pForgVmxEntry->VmxOnArea;
+	FreeAddrEnd = (PULONG_PTR)&pForgVmxEntry->VmxHostStackArea;
+
+	
+	do
+	{
+		if (*FreeAddrStart == NULL)
+		{
+			FrogExFreePool(*FreeAddrStart);
+		}
+
+		FreeAddrStart++;
+	} while (FreeAddrStart != FreeAddrEnd);
+
+	pForgVmxEntry->HyperIsEnable = FALSE;
+
+	return	ForgAllocateError;
+}
+
+//设置 VMXON、VMCS版本号
+void	Frog_SetHyperRegionVersion() {
+
+	Ia32VmxBasicMsr	VmxBasicMsr;
+	ULONG		CpuNumber;
+
+	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
+	CpuNumber = KeGetCurrentProcessorNumber();
+
+	pFrogVmx		pForgVmxEntry = &pForgVmxEntrys[CpuNumber];
+
+	pForgVmxEntry->VmxVmcsArea->revision_identifier = VmxBasicMsr.fields.revision_identifier;
+	pForgVmxEntry->VmxVmcsArea->revision_identifier = VmxBasicMsr.fields.revision_identifier;
+
+}
 
 VOID	Frog_HyperInit(
 	_In_ struct _KDPC *Dpc,
@@ -90,19 +179,46 @@ VOID	Frog_HyperInit(
 	_In_opt_ PVOID SystemArgument1,
 	_In_opt_ PVOID SystemArgument2
 ) {
-	//初始化VMX区域
 
+	if (!Forg_AllocateForgVmxRegion) {
+		DbgBreakPoint();
+	}
+
+	//初始化VMX区域
+	FrogRetCode	Status;
+	Status = Frog_AllocateHyperRegion();
+	if (Status != ForgAllocateError)
+	{
+		DbgBreakPoint();
+		goto	_HyperInitExit;
+	}
+
+	Frog_SetHyperRegionVersion();
+
+	//写ASM了
+
+
+_HyperInitExit:
 
 	KeSignalCallDpcSynchronize(SystemArgument2);
 	KeSignalCallDpcDone(SystemArgument1);
+
 }
 
-void Frog_ExecuteForEachProcessor() {
+
+
+FrogRetCode 	Frog_EnableHyper() {
+
+	if (!Frog_IsSupportHyper)	return NoSupportHyper;
+
 
 	KeGenericCallDpc(Frog_HyperInit,NULL);
+
+
+
 }
 
-void 	Frog_EnableHyper() {
-
+void Frog_DisableHyper() {
+	ExFreePoolWithTag(pForgVmxEntrys, FrogTag);
 
 }
