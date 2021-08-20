@@ -4,21 +4,9 @@
 #include "ia32.h"
 #include "ExportFunction.h"
 
-pFrogVmx		pForgVmxEntrys = NULL;
+
 #define		FrogTag	'Frog'
 #define		HostStackSize PAGE_SIZE * 3
-
-
-
-
-
-typedef		enum _FrogRetCode {
-	FrogSuccess,
-	NoSupportHyper,
-	ForgAllocateError,
-
-}FrogRetCode;
-
 
 typedef struct _FrogVmx {
 
@@ -36,6 +24,19 @@ typedef struct _FrogVmx {
 
 	pEptPointer EptPoniter;
 
-}FrogVmx,*pFrogVmx;
+}FrogVmx, *pFrogVmx;
+
+
+pFrogVmx		pForgVmxEntrys = NULL;
+
+
+
+
+typedef		enum _FrogRetCode {
+	FrogSuccess,
+	NoSupportHyper,
+	ForgAllocateError,
+
+}FrogRetCode;
 
 

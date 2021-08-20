@@ -1,5 +1,8 @@
 #include "vt.h"
 
+
+
+
 BOOLEAN		CPUID_VMXIsSupport() {
 
 	int cpuInfo[4];
@@ -57,37 +60,6 @@ void		FrogExFreePool(PULONG_PTR	FreeAddr) {
 // ↑ ToolsFunction--------------------------------------------------------
 //--------------------------------------------------------------------------
 
-//设置一些位以支持虚拟化
-void		Frog_SetBitToEnableHyper() {
-
-	//此位要置1否则不能执行VMXON
-	Ia32FeatureControlMsr VmxFeatureControl;
-	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
-	VmxFeatureControl.fields.lock = TRUE;
-	__writemsr(kIa32FeatureControl, VmxFeatureControl.all);
-
-	//开启后允许使用VMXON
-	Cr4	VmxCr4;
-	VmxCr4.all = __readcr4();
-	VmxCr4.fields.vmxe = TRUE;
-	__writecr4(VmxCr4.all);
-
-}
-
-//检查是否支持虚拟化
-BOOLEAN		Frog_IsSupportHyper() {
-
-	if (		CPUID_VMXIsSupport()		&&
-			MSR_VMXisSupport()		&&
-			CR0_VMXisSuppor()
-		)
-		return	TRUE;
-	
-
-	return FALSE;
-
-}
-
 
 //创建VMX管理结构
 BOOLEAN Forg_AllocateForgVmxRegion() {
@@ -118,7 +90,7 @@ FrogRetCode Frog_AllocateHyperRegion() {
 
 	pForgVmxEntry->VmxBitMapArea = FrogExAllocatePool(PAGE_SIZE);
 	
-	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize, FrogTag);
+	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize);
 
 
 	if (
@@ -144,9 +116,9 @@ _AllocateHyperFreePool:
 	
 	do
 	{
-		if (*FreeAddrStart == NULL)
+		if ((void*)*FreeAddrStart == NULL)
 		{
-			FrogExFreePool(*FreeAddrStart);
+			FrogExFreePool((PULONG_PTR)*FreeAddrStart);
 		}
 
 		FreeAddrStart++;
@@ -173,6 +145,37 @@ void	Frog_SetHyperRegionVersion() {
 
 }
 
+//设置一些位以支持虚拟化
+void		Frog_SetBitToEnableHyper() {
+
+	//此位要置1否则不能执行VMXON
+	Ia32FeatureControlMsr VmxFeatureControl;
+	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
+	VmxFeatureControl.fields.lock = TRUE;
+	__writemsr(kIa32FeatureControl, VmxFeatureControl.all);
+
+	//开启后允许使用VMXON
+	Cr4	VmxCr4;
+	VmxCr4.all = __readcr4();
+	VmxCr4.fields.vmxe = TRUE;
+	__writecr4(VmxCr4.all);
+
+}
+
+//检查是否支持虚拟化
+BOOLEAN		Frog_IsSupportHyper() {
+
+	if (CPUID_VMXIsSupport() &&
+		MSR_VMXisSupport() &&
+		CR0_VMXisSuppor()
+		)
+		return	TRUE;
+
+
+	return FALSE;
+
+}
+
 VOID	Frog_HyperInit(
 	_In_ struct _KDPC *Dpc,
 	_In_opt_ PVOID DeferredContext,
@@ -180,7 +183,7 @@ VOID	Frog_HyperInit(
 	_In_opt_ PVOID SystemArgument2
 ) {
 
-	if (!Forg_AllocateForgVmxRegion) {
+	if (!Forg_AllocateForgVmxRegion()) {
 		DbgBreakPoint();
 	}
 
@@ -209,12 +212,11 @@ _HyperInitExit:
 
 FrogRetCode 	Frog_EnableHyper() {
 
-	if (!Frog_IsSupportHyper)	return NoSupportHyper;
+	if (!Frog_IsSupportHyper())	return NoSupportHyper;
 
 
 	KeGenericCallDpc(Frog_HyperInit,NULL);
-
-
+	return	FrogSuccess;
 
 }
 
