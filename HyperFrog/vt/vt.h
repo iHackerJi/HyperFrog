@@ -3,10 +3,13 @@
 #include "PublicHeader.h"
 #include "ia32.h"
 #include "ExportFunction.h"
+#include "vt_asm.h"
 
 
 #define		FrogTag	'Frog'
 #define		HostStackSize PAGE_SIZE * 3
+#define		Frog_SUCCESS(Status) (((FrogRetCode)(Status)) >= 0)
+
 
 typedef struct _FrogVmx {
 
@@ -26,17 +29,15 @@ typedef struct _FrogVmx {
 
 }FrogVmx, *pFrogVmx;
 
-
-pFrogVmx		pForgVmxEntrys = NULL;
-
-
-
-
 typedef		enum _FrogRetCode {
 	FrogSuccess,
 	NoSupportHyper,
-	ForgAllocateError,
-
+	ForgAllocatePoolError,
+	ForgVmxOnError,
+	ForgVmClearError,
+	ForgVmptrldError
 }FrogRetCode;
 
 
+
+FrogRetCode 	Frog_EnableHyper();

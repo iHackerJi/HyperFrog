@@ -48,5 +48,13 @@
     <ClInclude Include="ExportFunction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="vt_asm.h">
+      <Filter>Driver Files\VT\Vt_Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="vt_asm.asm">
+      <Filter>Driver Files\VT\Vt_Source</Filter>
+    </MASM>
   </ItemGroup>
 </Project>
