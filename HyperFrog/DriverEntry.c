@@ -7,7 +7,7 @@ NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
 
 	Code = Frog_EnableHyper();
 
-
+	
 
 	return	STATUS_SUCCESS;
 }

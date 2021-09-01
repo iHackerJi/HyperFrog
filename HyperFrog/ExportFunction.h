@@ -1,5 +1,8 @@
 #pragma once
+#include "Global.h"
 #include <ntifs.h>
+
+
 
 NTKERNELAPI
 _IRQL_requires_max_(APC_LEVEL)
@@ -25,4 +28,8 @@ _IRQL_requires_same_
 LOGICAL
 KeSignalCallDpcSynchronize(
 	_In_ PVOID SystemArgument2
+);
+
+VOID	KeSaveStateForHibernate(
+	IN  PKPROCESSOR_STATE ProcessorState
 );

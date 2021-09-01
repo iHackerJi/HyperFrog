@@ -7,11 +7,13 @@
 
 
 #define		FrogTag	'Frog'
-#define		HostStackSize PAGE_SIZE * 3
+#define		HostStackSize PAGE_SIZE * 6
 #define		Frog_SUCCESS(Status) (((FrogRetCode)(Status)) >= 0)
-
+#define		FrogExFreePool(mem) 	ExFreePoolWithTag(mem, FrogTag);
 
 typedef struct _FrogVmx {
+	KPROCESSOR_STATE		HostState;
+	ULONG64					HostCr3;
 
 	pVmControlStructure		VmxOnArea;
 	pVmControlStructure		VmxVmcsArea;

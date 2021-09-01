@@ -53,7 +53,7 @@ PVOID  FrogExAllocatePool(ULONG Size) {
 	return	ResultAddr;
 }	
 
-#define FrogExFreePool(Addr) 	ExFreePoolWithTag(Addr, FrogTag);
+
 
 
 //创建VMX管理结构
@@ -135,6 +135,19 @@ void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry,ULONG		CpuNumber) {
 
 }
 
+void	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue) {
+	UCHAR	State = 0;
+	State = __vmx_vmwrite(Field, FieldValue);
+	if (!State)
+	{
+		//Error
+		FrogBreak();
+		FrogPrint("FrogVmxWrite 	Error	Field = %x", Field);
+	}
+
+	return;
+}
+
 
 // ↑ ToolsFunction--------------------------------------------------------
 //--------------------------------------------------------------------------
@@ -172,26 +185,138 @@ BOOLEAN		Frog_IsSupportHyper() {
 
 }
 
-FrogRetCode	Frog_SetupVmxOn(pFrogVmx		pForgVmxEntry) {
-	return  (FrogRetCode)__asm_vmxon(pForgVmxEntry->VmxOnAreaPhysicalAddr);
+#define		SEGMENT_GDT	1
+#define		SEGMENT_LDT	0
+#define		RPL_MAX_MASK 3
+
+enum FrogSegment
+{
+	Frog_ES,
+	Frog_CS,
+	Frog_SS,
+	Frog_DS,
+	Frog_FS,
+	Frog_GS,
+	Frog_LDTR,
+	Frog_TR
+};
+
+
+
+BOOLEAN		Frog_FullGuestVmxSelector(PUSHORT Selector, PVOID	GdtBase) {
+
+
+	for (int i =0 ; i <= 14 ; i+=2)
+	{
+		SEGMENT_SELECTOR	Segment = { 0 };
+		ULONG				uAccessRights = 0;
+		PKGDTENTRY64		GdtEntry = NULL;
+		ULONG_PTR			Base = 0;
+		ULONG			Limit = 0;
+		Segment.Flags = Selector[i] & (~RPL_MAX_MASK);
+
+
+		if (Segment.Table == SEGMENT_LDT)
+		{
+			return FALSE;
+		}
+		GdtEntry = (PKGDTENTRY64)(ULONG_PTR)((ULONG64)GdtBase + Segment.Index);
+		Base = GdtEntry->BaseLow | GdtEntry->Bytes.BaseMiddle << 16 | GdtEntry->Bytes.BaseHigh << 24;
+
+		Limit = __segmentlimit(Segment.Flags);
+
+		if (!Selector)
+			uAccessRights |= 0x10000;
+		else
+			uAccessRights = GdtEntry->Bytes.Flags1 << 8 | GdtEntry->Bytes.Flags2;
+
+		Frog_Vmx_Write(GUEST_ES_BASE + i, Base);
+	
+		Frog_Vmx_Write(GUEST_ES_LIMIT + i, Limit);
+
+		Frog_Vmx_Write(GUEST_ES_AR_BYTES + i, uAccessRights);
+	
+
+		Frog_Vmx_Write(GUEST_ES_SELECTOR + i, Segment.Flags);
+
+
+		if (i < 10)		Frog_Vmx_Write(HOST_ES_SELECTOR + i, Segment.Flags);
+				
+		if (i == 14)	Frog_Vmx_Write(HOST_TR_SELECTOR, Segment.Flags);
+		
+	}
+
+	return	TRUE;
 }
 
+
 FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
+
 	FrogRetCode		Status = FrogSuccess;
-	Status = __asm_vmclear(pForgVmxEntry->VmxVmcsAreaPhysicalAddr.QuadPart);
-	if (!Frog_SUCCESS(Status))
+	KPROCESSOR_STATE HostState = pForgVmxEntry->HostState;
+	short	SelectorArry[8] = {0};
+
+	if (__vmx_vmclear((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
 	{
+		FrogBreak();
+		FrogPrint("ForgVmClear	Error");
 		return ForgVmClearError;
 	}
 
-	Status = __asm_vmptrld(pForgVmxEntry->VmxOnAreaPhysicalAddr.QuadPart);
-	if (!Frog_SUCCESS(Status))
+	if (__vmx_vmptrld((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
 	{
-		return ForgVmClearError;
+		FrogBreak();
+		FrogPrint("ForgVmptrld	Error");
+		return ForgVmptrldError;
 	}
-	DbgBreakPoint();
-	//__asm_vmwrite();
 
+	//Segment
+	SelectorArry[Frog_ES] = HostState.ContextFrame.SegEs;
+	SelectorArry[Frog_CS] = HostState.ContextFrame.SegCs;
+	SelectorArry[Frog_SS] = HostState.ContextFrame.SegSs;
+	SelectorArry[Frog_DS] = HostState.ContextFrame.SegDs;
+	SelectorArry[Frog_FS] = HostState.ContextFrame.SegFs;
+	SelectorArry[Frog_GS] = HostState.ContextFrame.SegGs;
+	SelectorArry[Frog_LDTR] = HostState.SpecialRegisters.Ldtr;
+	SelectorArry[Frog_TR] = HostState.SpecialRegisters.Tr;
+	Frog_FullGuestVmxSelector(SelectorArry, HostState.SpecialRegisters.Gdtr.Base);
+
+	//gdt
+	Frog_Vmx_Write(GUEST_GDTR_BASE, (ULONG64)HostState.SpecialRegisters.Gdtr.Base);
+	Frog_Vmx_Write(GUEST_GDTR_LIMIT, HostState.SpecialRegisters.Gdtr.Limit);
+	Frog_Vmx_Write(HOST_GDTR_BASE, (ULONG64)HostState.SpecialRegisters.Gdtr.Base);
+
+	//idt
+	Frog_Vmx_Write(GUEST_IDTR_BASE, (ULONG64)HostState.SpecialRegisters.Idtr.Base);
+	Frog_Vmx_Write(GUEST_IDTR_LIMIT, HostState.SpecialRegisters.Idtr.Limit);
+	Frog_Vmx_Write(HOST_IDTR_BASE, (ULONG64)HostState.SpecialRegisters.Idtr.Base);
+
+	// 注意：	这些CRX_GUEST_HOST_MASK ，当某一个位被置上的时候，Guest机读这个位会返回Shadow的值；Guest机写这个位会产生VM-EXIT
+	//CR0
+	Frog_Vmx_Write(GUEST_CR0, HostState.SpecialRegisters.Cr0);
+	Frog_Vmx_Write(HOST_CR0, HostState.SpecialRegisters.Cr0);
+	Frog_Vmx_Write(CR0_GUEST_HOST_MASK, HostState.SpecialRegisters.Cr0);		
+
+	//CR3
+	Frog_Vmx_Write(GUEST_CR3, HostState.SpecialRegisters.Cr3);
+	//因为使用了KeGenericCallDpc函数进行多核同步操作，这个函数会把我们的例程通过DPC投放到别的进程里面，可能CR3会被改变，所以CR3在之前需要保存
+	Frog_Vmx_Write(HOST_CR3, pForgVmxEntry->HostCr3);
+
+	//CR4
+	Frog_Vmx_Write(GUEST_CR4, HostState.SpecialRegisters.Cr4);
+	Frog_Vmx_Write(HOST_CR4, HostState.SpecialRegisters.Cr4);
+	Frog_Vmx_Write(CR4_GUEST_HOST_MASK, HostState.SpecialRegisters.Cr4);
+
+	
+
+
+																			
+
+
+
+
+
+	
 	return Status;
 }
 
@@ -209,12 +334,18 @@ VOID	Frog_HyperInit(
 	ULONG		CpuNumber = KeGetCurrentProcessorNumber();
 	pFrogVmx		pForgVmxEntry = &pForgVmxEntrys[CpuNumber];
 
+	//保存HOST机上下文
+	KeSaveStateForHibernate(&pForgVmxEntry->HostState);
+	RtlCaptureContext(&pForgVmxEntry->HostState.ContextFrame);
+	pForgVmxEntry->HostCr3 = (ULONG64)DeferredContext;
+
 	//申请VMCS、VMXON、等等区域
 	Status = Frog_AllocateHyperRegion(pForgVmxEntry, CpuNumber);
 
 	if (!Frog_SUCCESS(Status))
 	{
-		DbgBreakPoint();
+		FrogBreak();
+		FrogPrint("AllocateHyperRegion	Error");
 		goto	_HyperInitExit;
 	}
 
@@ -223,10 +354,11 @@ VOID	Frog_HyperInit(
 	Frog_SetHyperRegionVersion(pForgVmxEntry, CpuNumber);
 
 	//VMXON
-	Status = Frog_SetupVmxOn(pForgVmxEntry);
-	if (!Frog_SUCCESS(Status))
+
+	if (__vmx_on((UINT64*)&pForgVmxEntry->VmxOnAreaPhysicalAddr))
 	{
-		DbgBreakPoint();
+		FrogBreak();
+		FrogPrint("Vmxon	Error");
 		goto	_HyperInitExit;
 	}
 
@@ -248,14 +380,25 @@ _HyperInitExit:
 FrogRetCode 	Frog_EnableHyper() {
 
 	//查询是否支持虚拟化
-	if (!Frog_IsSupportHyper())	return NoSupportHyper;
+	if (!Frog_IsSupportHyper()) {
+		FrogBreak();
+		FrogPrint("NoSupportHyper");
+		return NoSupportHyper;
+	} 
+
+
 
 	//申请 ForgVmxRegion
-	if (!Forg_AllocateForgVmxRegion()) return ForgAllocatePoolError;
+	if (!Forg_AllocateForgVmxRegion()) {
+		FrogBreak();
+		FrogPrint("ForgAllocatePoolError");
+		return ForgAllocatePoolError;
+	}
+
 
 	Frog_SetBitToEnableHyper();
 
-	KeGenericCallDpc(Frog_HyperInit,NULL);
+	KeGenericCallDpc(Frog_HyperInit, (PVOID)__readcr3());
 	return	FrogSuccess;
 
 }

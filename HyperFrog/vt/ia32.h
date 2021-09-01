@@ -395,6 +395,65 @@ typedef union _Ia32VmxBasicMsr {
 }Ia32VmxBasicMsr, *pIa32VmxBasicMsr;
 
 
+typedef union _SEGMENT_SELECTOR
+{
+	struct
+	{
+		UINT16 RequestPrivilegeLevel : 2;
+		UINT16 Table : 1;
+
+		UINT16 Index : 13;
+
+	};
+
+	UINT16 Flags;
+}SEGMENT_SELECTOR,*pSEGMENT_SELECTOR;
+
+
+typedef union _KGDTENTRY64
+{
+	struct
+	{
+		USHORT LimitLow;
+		USHORT BaseLow;
+		union
+		{
+			struct
+			{
+				UCHAR BaseMiddle;
+				UCHAR Flags1;
+				UCHAR Flags2;
+				UCHAR BaseHigh;
+			} Bytes;
+
+			struct
+			{
+				ULONG BaseMiddle : 8;
+				ULONG Type : 5;
+				ULONG Dpl : 2;
+				ULONG Present : 1;
+				ULONG LimitHigh : 4;
+				ULONG System : 1;
+				ULONG LongMode : 1;
+				ULONG DefaultBig : 1;
+				ULONG Granularity : 1;
+				ULONG BaseHigh : 8;
+			} Bits;
+		};
+
+		ULONG BaseUpper;
+		ULONG MustBeZero;
+	};
+
+	struct
+	{
+		LONG64 DataLow;
+		LONG64 DataHigh;
+	};
+	
+} KGDTENTRY64, *PKGDTENTRY64;
+
+
 //----------------------------------
 
 //struct
