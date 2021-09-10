@@ -1,7 +1,8 @@
 #include "vt/vt_help.h"
+
+
+
 EXTERN_C pFrogCpu		Frog_Cpu;
-
-
 
 BOOLEAN		CPUID_VMXIsSupport() {
 
@@ -88,8 +89,7 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) 
 
 	pForgVmxEntry->VmxVmcsArea = FrogExAllocatePool(PAGE_SIZE);
 
-	FrogBreak();
-
+	
 	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE * 2);
 
 	if (pForgVmxEntry->VmxBitMapArea.BitMap == NULL)	goto __AllocateHyperFreePoolExit;
@@ -136,35 +136,44 @@ void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) {
 
 }
 
-void	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue) {
+FrogRetCode	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue) {
 	UCHAR	State = 0;
 	State = __vmx_vmwrite(Field, FieldValue);
-	if (!State)
+	if (State)
 	{
 		//Error
 		FrogBreak();
 		FrogPrint("FrogVmxWrite 	Error	Field = %x", Field);
 	}
+	
 
-	return;
+	return	State;
 }
 
-
-
-//设置一些位以支持虚拟化
-void		Frog_SetBitToEnableHyper() {
-
-	//此位要置1否则不能执行VMXON
-	Ia32FeatureControlMsr VmxFeatureControl;
-	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
-	VmxFeatureControl.fields.lock = TRUE;
-	__writemsr(kIa32FeatureControl, VmxFeatureControl.all);
+//设置CR0寄存器的一些位以支持虚拟化
+void		Frog_SetCr0BitToEnableHyper(pFrogVmx		pForgVmxEntry) {
 
 	//开启后允许使用VMXON
 	Cr4	VmxCr4;
 	VmxCr4.all = __readcr4();
+
+	pForgVmxEntry->oldCr4.all = VmxCr4.all;
 	VmxCr4.fields.vmxe = TRUE;
 	__writecr4(VmxCr4.all);
+
+}
+
+
+//设置MSR寄存器的一些位以支持虚拟化
+void		Frog_SetMsrBitToEnableHyper() {
+
+	//此位要置1否则不能执行VMXON
+	Ia32FeatureControlMsr VmxFeatureControl;
+	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
+	Frog_Cpu->oldFeatureControlMsr.all = VmxFeatureControl.all;
+	
+	VmxFeatureControl.fields.lock = TRUE;
+	__writemsr(kIa32FeatureControl, VmxFeatureControl.all);
 
 }
 

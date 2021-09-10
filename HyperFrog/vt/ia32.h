@@ -302,6 +302,38 @@ typedef union _VmxPinBasedControls
 	} Fields;
 } VmxPinBasedControls, *pVmxPinBasedControls;
 
+typedef union _VmxSecondaryProcessorBasedControls {
+	unsigned int all;
+	struct {
+		unsigned virtualize_apic_accesses : 1;            //!< [0]
+		unsigned enable_ept : 1;                          //!< [1]
+		unsigned descriptor_table_exiting : 1;            //!< [2]
+		unsigned enable_rdtscp : 1;                       //!< [3]
+		unsigned virtualize_x2apic_mode : 1;              //!< [4]
+		unsigned enable_vpid : 1;                         //!< [5]
+		unsigned wbinvd_exiting : 1;                      //!< [6]
+		unsigned unrestricted_guest : 1;                  //!< [7]
+		unsigned apic_register_virtualization : 1;        //!< [8]
+		unsigned virtual_interrupt_delivery : 1;          //!< [9]
+		unsigned pause_loop_exiting : 1;                  //!< [10]
+		unsigned rdrand_exiting : 1;                      //!< [11]
+		unsigned enable_invpcid : 1;                      //!< [12]
+		unsigned enable_vm_functions : 1;                 //!< [13]
+		unsigned vmcs_shadowing : 1;                      //!< [14]
+		unsigned reserved1 : 1;                           //!< [15]
+		unsigned rdseed_exiting : 1;                      //!< [16]
+		unsigned reserved2 : 1;                           //!< [17]
+		unsigned ept_violation_ve : 1;                    //!< [18]
+		unsigned reserved3 : 1;                           //!< [19]
+		unsigned enable_xsaves_xstors : 1;                //!< [20]
+		unsigned reserved4 : 1;                           //!< [21]
+		unsigned mode_based_execute_control_for_ept : 1;  //!< [22]
+		unsigned reserved5 : 2;                           //!< [23:24]
+		unsigned use_tsc_scaling : 1;                     //!< [25]
+	} fields;
+}VmxSecondaryProcessorBasedControls,*pVmxSecondaryProcessorBasedControls;
+
+
 typedef union _VmxProcessorBasedControls {
 	unsigned int all;
 	struct {

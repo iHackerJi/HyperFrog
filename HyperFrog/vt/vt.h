@@ -9,7 +9,9 @@
 #define		FrogTag	'Frog'
 #define		HostStackSize PAGE_SIZE * 6
 #define		Frog_SUCCESS(Status) (((FrogRetCode)(Status)) >= 0)
-#define		FrogExFreePool(mem) 	ExFreePoolWithTag(mem, FrogTag);
+#define		FrogExFreePool(mem) 	ExFreePoolWithTag(mem, FrogTag)
+
+
 
 typedef struct _VmxIoBitMap {
 	PVOID	BitMap;
@@ -18,7 +20,7 @@ typedef struct _VmxIoBitMap {
 }VmxIoBitMap,*pVmxIoBitMap;
 
 typedef struct _FrogVmx {
-
+	Cr4		oldCr4;
 
 	KPROCESSOR_STATE		HostState;
 	ULONG64					HostCr3;
@@ -40,6 +42,7 @@ typedef struct _FrogVmx {
 
 typedef struct _FrogCpu {
 	ULONG	ProcessOrNumber;
+	Ia32FeatureControlMsr	oldFeatureControlMsr;
 	pFrogVmx		pForgVmxEntrys;
 }FrogCpu,*pFrogCpu;
 
@@ -49,7 +52,8 @@ typedef		enum _FrogRetCode {
 	ForgAllocatePoolError,
 	ForgVmxOnError,
 	ForgVmClearError,
-	ForgVmptrldError
+	ForgVmptrldError,
+	FrogUnloadError
 }FrogRetCode;
 
 
@@ -68,3 +72,4 @@ enum FrogSegment
 
 
 FrogRetCode 	Frog_EnableHyper();
+FrogRetCode Frog_DisableHyper();

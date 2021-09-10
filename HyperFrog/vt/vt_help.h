@@ -12,6 +12,8 @@ BOOLEAN Forg_AllocateForgVmxRegion();
 void	Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry);
 FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber);
 void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber);
-void	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue);
-void		Frog_SetBitToEnableHyper();
+FrogRetCode		Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue);
 BOOLEAN		Frog_IsSupportHyper();
+
+void		Frog_SetCr0BitToEnableHyper(pFrogVmx		pForgVmxEntry);
+void		Frog_SetMsrBitToEnableHyper();

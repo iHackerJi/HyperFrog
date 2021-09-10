@@ -4,8 +4,8 @@
 pFrogCpu		Frog_Cpu = NULL;
 
 
-BOOLEAN		Frog_FullGuestVmxSelector(PUSHORT Selector, PVOID	GdtBase) {
-
+FrogRetCode		Frog_FullGuestVmxSelector(PUSHORT Selector, PVOID	GdtBase) {
+	FrogRetCode		Status = FrogSuccess;
 
 	for (int i =0 ; i <= 14 ; i+=2)
 	{
@@ -31,18 +31,18 @@ BOOLEAN		Frog_FullGuestVmxSelector(PUSHORT Selector, PVOID	GdtBase) {
 		else
 			uAccessRights = (UINT16)GdtEntry->Bytes.Flags1 << 8 | GdtEntry->Bytes.Flags2;
 
-		Frog_Vmx_Write(GUEST_ES_BASE + i, Base);
-		Frog_Vmx_Write(GUEST_ES_LIMIT + i, Limit);
-		Frog_Vmx_Write(GUEST_ES_AR_BYTES + i, uAccessRights);
-		Frog_Vmx_Write(GUEST_ES_SELECTOR + i, Segment.Flags);
+		Status|=Frog_Vmx_Write(GUEST_ES_BASE + i, Base);
+		Status|=Frog_Vmx_Write(GUEST_ES_LIMIT + i, Limit);
+		Status|=Frog_Vmx_Write(GUEST_ES_AR_BYTES + i, uAccessRights);
+		Status|=Frog_Vmx_Write(GUEST_ES_SELECTOR + i, Segment.Flags);
 
-		if (i < 10)		Frog_Vmx_Write(HOST_ES_SELECTOR + i, Segment.Flags);
+		if (i < 10)		Status|=Frog_Vmx_Write(HOST_ES_SELECTOR + i, Segment.Flags);
 				
-		if (i == 14)	Frog_Vmx_Write(HOST_TR_SELECTOR, Segment.Flags);
+		if (i == 14)	Status|=Frog_Vmx_Write(HOST_TR_SELECTOR, Segment.Flags);
 		
 	}
 
-	return	TRUE;
+	return	Status;
 }
 
 ULONG 	Frog_VmxAdjustControlValue(Msr	msr , ULONG MapValue) {
@@ -59,34 +59,42 @@ ULONG 	Frog_VmxAdjustControlValue(Msr	msr , ULONG MapValue) {
 }
 
 FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
-	BOOLEAN	UseTrueMsr = FALSE;
+	ULONG	UseTrueMsrs = 0;
+
 	FrogRetCode		Status = FrogSuccess;
 	KPROCESSOR_STATE HostState = pForgVmxEntry->HostState;
 
 	short	SelectorArry[8] = {0};
-	Ia32VmxBasicMsr				VmxBasicMsr = { 0 };
-	VmxPinBasedControls			VmPinBasedControls = { 0 };
-	VmxProcessorBasedControls	VmProcessorBasedControls = { 0 };
+	Ia32VmxBasicMsr						VmxBasicMsr = { 0 };
+	VmxPinBasedControls					VmPinBasedControls = { 0 };
+	VmxProcessorBasedControls			VmProcessorBasedControls = { 0 };
+	VmxSecondaryProcessorBasedControls	VmSecondaryProcessorBasedControls = { 0 };
+
 
 	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
-	UseTrueMsr = (BOOLEAN)VmxBasicMsr.fields.vmx_capability_hint;
-
-	VmPinBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsr ? __readmsr(kIa32VmxTruePinbasedCtls) : __readmsr(kIa32VmxPinbasedCtls), VmPinBasedControls.all);
+	UseTrueMsrs = (BOOLEAN)VmxBasicMsr.fields.vmx_capability_hint;
 
 
-	VmProcessorBasedControls.fields.cr3_load_exiting = TRUE;
-	VmProcessorBasedControls.fields.cr3_store_exiting = TRUE;
-	//VmProcessorBasedControls.fields.activate_secondary_control = TRUE;
-	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsr ? kIa32VmxTrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
+	VmPinBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? __readmsr(kIa32VmxTruePinbasedCtls) : __readmsr(kIa32VmxPinbasedCtls), VmPinBasedControls.all);
+
+
+	
+	VmProcessorBasedControls.fields.use_msr_bitmaps = TRUE;
+	VmProcessorBasedControls.fields.activate_secondary_control = TRUE;
+	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
 
 
 
+	VmSecondaryProcessorBasedControls.all = Frog_VmxAdjustControlValue(kIa32VmxProcBasedCtls2, VmProcessorBasedControls.all);
 
 
-	Frog_Vmx_Write(PIN_BASED_VM_EXEC_CONTROL, VmPinBasedControls.all);
-	Frog_Vmx_Write(CPU_BASED_VM_EXEC_CONTROL, VmProcessorBasedControls.all);
-	Frog_Vmx_Write(IO_BITMAP_A, (ULONG_PTR)pForgVmxEntry->VmxBitMapArea.BitMapA);
-	Frog_Vmx_Write(IO_BITMAP_B, (ULONG_PTR)pForgVmxEntry->VmxBitMapArea.BitMapB);
+
+	Status|=Frog_Vmx_Write(PIN_BASED_VM_EXEC_CONTROL, VmPinBasedControls.all);
+	Status|=Frog_Vmx_Write(CPU_BASED_VM_EXEC_CONTROL, VmProcessorBasedControls.all);
+	Status|=Frog_Vmx_Write(SECONDARY_VM_EXEC_CONTROL, VmSecondaryProcessorBasedControls.all);
+
+	Status|=Frog_Vmx_Write(IO_BITMAP_A, (ULONG_PTR)pForgVmxEntry->VmxBitMapArea.BitMapA);
+	Status|=Frog_Vmx_Write(IO_BITMAP_B, (ULONG_PTR)pForgVmxEntry->VmxBitMapArea.BitMapB);
 
 	// CR3_TARGET_COUNT
 
@@ -99,47 +107,46 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
 	SelectorArry[Frog_GS] = HostState.ContextFrame.SegGs;
 	SelectorArry[Frog_LDTR] = HostState.SpecialRegisters.Ldtr;
 	SelectorArry[Frog_TR] = HostState.SpecialRegisters.Tr;
-	Frog_FullGuestVmxSelector(SelectorArry, HostState.SpecialRegisters.Gdtr.Base);
+	Status|=Frog_FullGuestVmxSelector(SelectorArry, HostState.SpecialRegisters.Gdtr.Base);
 
 	//gdt
-	Frog_Vmx_Write(GUEST_GDTR_BASE, (ULONG64)HostState.SpecialRegisters.Gdtr.Base);
-	Frog_Vmx_Write(GUEST_GDTR_LIMIT, HostState.SpecialRegisters.Gdtr.Limit);
-	Frog_Vmx_Write(HOST_GDTR_BASE, (ULONG64)HostState.SpecialRegisters.Gdtr.Base);
+	Status|= Frog_Vmx_Write(GUEST_GDTR_BASE, (ULONG64)HostState.SpecialRegisters.Gdtr.Base);
+	Status|=Frog_Vmx_Write(GUEST_GDTR_LIMIT, HostState.SpecialRegisters.Gdtr.Limit);
+	Status|=Frog_Vmx_Write(HOST_GDTR_BASE, (ULONG64)HostState.SpecialRegisters.Gdtr.Base);
 
 	//idt
-	Frog_Vmx_Write(GUEST_IDTR_BASE, (ULONG64)HostState.SpecialRegisters.Idtr.Base);
-	Frog_Vmx_Write(GUEST_IDTR_LIMIT, HostState.SpecialRegisters.Idtr.Limit);
-	Frog_Vmx_Write(HOST_IDTR_BASE, (ULONG64)HostState.SpecialRegisters.Idtr.Base);
+	Status|=Frog_Vmx_Write(GUEST_IDTR_BASE, (ULONG64)HostState.SpecialRegisters.Idtr.Base);
+	Status|=Frog_Vmx_Write(GUEST_IDTR_LIMIT, HostState.SpecialRegisters.Idtr.Limit);
+	Status|=Frog_Vmx_Write(HOST_IDTR_BASE, (ULONG64)HostState.SpecialRegisters.Idtr.Base);
 
 	// 注意：	这些CRX_GUEST_HOST_MASK ，当某一个位被置上的时候，Guest机读这个位会返回Shadow的值；Guest机写这个位会产生VM-EXIT
 	//CR0
-	Frog_Vmx_Write(GUEST_CR0, HostState.SpecialRegisters.Cr0);
-	Frog_Vmx_Write(HOST_CR0, HostState.SpecialRegisters.Cr0);
-	Frog_Vmx_Write(CR0_READ_SHADOW, HostState.SpecialRegisters.Cr0);
+	Status|=Frog_Vmx_Write(GUEST_CR0, HostState.SpecialRegisters.Cr0);
+	Status|=Frog_Vmx_Write(HOST_CR0, HostState.SpecialRegisters.Cr0);
+	Status|=Frog_Vmx_Write(CR0_READ_SHADOW, HostState.SpecialRegisters.Cr0);
 
 	//CR3
-	Frog_Vmx_Write(GUEST_CR3, HostState.SpecialRegisters.Cr3);
+	Status|= Frog_Vmx_Write(GUEST_CR3, HostState.SpecialRegisters.Cr3);
 	//因为使用了KeGenericCallDpc函数进行多核同步操作，这个函数会把我们的例程通过DPC投放到别的进程里面，可能CR3会被改变，所以CR3在之前需要保存
-	Frog_Vmx_Write(HOST_CR3, pForgVmxEntry->HostCr3);
+	Status|= Frog_Vmx_Write(HOST_CR3, pForgVmxEntry->HostCr3);
 
 	//CR4
-	Frog_Vmx_Write(GUEST_CR4, HostState.SpecialRegisters.Cr4);
-	Frog_Vmx_Write(HOST_CR4, HostState.SpecialRegisters.Cr4);
-	Frog_Vmx_Write(CR4_READ_SHADOW, HostState.SpecialRegisters.Cr4);
+	Status|=Frog_Vmx_Write(GUEST_CR4, HostState.SpecialRegisters.Cr4);
+	Status|=Frog_Vmx_Write(HOST_CR4, HostState.SpecialRegisters.Cr4);
+	Status|=Frog_Vmx_Write(CR4_READ_SHADOW, HostState.SpecialRegisters.Cr4);
 
 	//DR7
-	Frog_Vmx_Write(GUEST_DR7, HostState.SpecialRegisters.KernelDr7);
+	Status|=Frog_Vmx_Write(GUEST_DR7, HostState.SpecialRegisters.KernelDr7);
 
 	//GUEST RSP RIP RFLAGS
-	Frog_Vmx_Write(GUEST_RSP, HostState.ContextFrame.Rsp);
-	Frog_Vmx_Write(GUEST_RIP, HostState.ContextFrame.Rip);
-	Frog_Vmx_Write(GUEST_RFLAGS, HostState.ContextFrame.EFlags);
+	Status|=Frog_Vmx_Write(GUEST_RSP, HostState.ContextFrame.Rsp);
+	Status|=Frog_Vmx_Write(GUEST_RIP, HostState.ContextFrame.Rip);
+	Status|=Frog_Vmx_Write(GUEST_RFLAGS, HostState.ContextFrame.EFlags);
 
 
 	//HOST RIP RSP
-	Frog_Vmx_Write(HOST_RSP, (ULONG_PTR)pForgVmxEntry->VmxHostStackArea + HostStackSize - sizeof(CONTEXT));
-
-	Frog_Vmx_Write(HOST_RIP, (ULONG_PTR)VmxEntryPointer);
+	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG_PTR)pForgVmxEntry->VmxHostStackArea + HostStackSize - sizeof(CONTEXT));
+	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG_PTR)VmxEntryPointer);
 
 	
 	return Status;
@@ -158,6 +165,10 @@ VOID	Frog_HyperInit(
 	FrogRetCode	Status;
 	ULONG		CpuNumber = KeGetCurrentProcessorNumber();
 	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CpuNumber];
+	size_t		VmxErrorCode = 0;
+
+
+	Frog_SetCr0BitToEnableHyper(pForgVmxEntry);
 
 	//保存HOST机上下文
 	KeSaveStateForHibernate(&pForgVmxEntry->HostState);
@@ -203,12 +214,20 @@ VOID	Frog_HyperInit(
 		goto _HyperInitExit;
 	}
 
-	FrogBreak();
 	//VMCS
-	Frog_SetupVmcs(pForgVmxEntry);
+	Status = Frog_SetupVmcs(pForgVmxEntry);
+	if (!Frog_SUCCESS(Status)) {
+		FrogBreak();
+		FrogPrint("Frog_SetupVmcs	Error");
+		goto	_HyperInitExit;
+	}
 
 	__vmx_vmlaunch();
+	__vmx_vmread(VM_INSTRUCTION_ERROR,&VmxErrorCode);
 
+
+	FrogPrint("VmLaunch	Error = %d", VmxErrorCode);
+	FrogBreak();
 
 _HyperInitExit:
 
@@ -237,9 +256,8 @@ FrogRetCode 	Frog_EnableHyper() {
 		return ForgAllocatePoolError;
 	}
 
-
-	Frog_SetBitToEnableHyper();
-
+	//设置MSR的位以支持虚拟化
+	Frog_SetMsrBitToEnableHyper();
 
 	KeGenericCallDpc(Frog_HyperInit, (PVOID)__readcr3());
 
@@ -250,27 +268,54 @@ FrogRetCode 	Frog_EnableHyper() {
 
 
 //--------------------------------------Unload
-VOID	Frog_HyperUnLoad(
-	_In_ struct _KDPC *Dpc,
-	_In_opt_ PVOID DeferredContext,
-	_In_opt_ PVOID SystemArgument1,
-	_In_opt_ PVOID SystemArgument2
-) {
+void	Frog_HyperUnLoad(ULONG	CurrentProcessor) {
 
-	ULONG		CpuNumber = KeGetCurrentProcessorNumber();
-	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CpuNumber];
+
+	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
+
+	//这里需要每个处理器修复回去
+	__writecr4(pForgVmxEntry->oldCr4.all);
+
+
 	Frog_FreeHyperRegion(pForgVmxEntry);
+	if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
 
-
-	KeSignalCallDpcSynchronize(SystemArgument2);
-	KeSignalCallDpcDone(SystemArgument1);
 }
 
-void Frog_DisableHyper() {
+FrogRetCode Frog_DisableHyper() {
 
-	KeGenericCallDpc(Frog_HyperUnLoad, NULL);
+	ULONG	ProcessorNumber = Frog_Cpu->ProcessOrNumber;
+	for (ULONG i = 0; i < ProcessorNumber; i++)
+	{
 
-	if (Frog_Cpu->pForgVmxEntrys)		FrogExFreePool(Frog_Cpu->pForgVmxEntrys);
+		NTSTATUS	Status;
+		PROCESSOR_NUMBER processor_number = { 0 };
+
+		Status = KeGetProcessorNumberFromIndex(i, &processor_number);
+		if (!NT_SUCCESS(Status))
+		{
+			FrogBreak();
+			FrogPrint("KeGetProcessorNumberFromIndex Error");
+			return	FrogUnloadError;
+		}
+
+		GROUP_AFFINITY	Affinity = { 0 };
+		GROUP_AFFINITY	oldAffinity = { 0 };
+		Affinity.Group = processor_number.Group;
+		Affinity.Mask = 1ull << processor_number.Number;
+
+		Frog_HyperUnLoad(i);
+
+
+		KeSetSystemGroupAffinityThread(&Affinity, &oldAffinity);
+	}
+
+	__writemsr(kIa32FeatureControl,Frog_Cpu->oldFeatureControlMsr.all);
+
 	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
+	Frog_Cpu->pForgVmxEntrys->HyperIsEnable = FALSE;
 
+
+	
+	return	FrogSuccess;
 }

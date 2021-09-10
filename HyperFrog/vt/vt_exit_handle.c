@@ -1,4 +1,5 @@
 #include "vt.h"
+EXTERN_C pFrogCpu		Frog_Cpu;
 
 EXTERN_C VOID vmexit_handle(IN PCONTEXT Context)
 {
@@ -6,8 +7,7 @@ EXTERN_C VOID vmexit_handle(IN PCONTEXT Context)
 
 	Irql = KeGetCurrentIrql();
 	if (Irql < DISPATCH_LEVEL) Irql = KeRaiseIrqlToDpcLevel();
-
-
+	Frog_Cpu->pForgVmxEntrys->HyperIsEnable = TRUE;
 	//»¹Ô­RCX
 	Context->Rcx = *(PULONG64)((ULONG_PTR)Context - sizeof(Context->Rcx));
 
