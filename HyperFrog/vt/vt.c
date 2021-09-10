@@ -1,206 +1,7 @@
 #include "vt.h"
+#include "vt_help.h"
 
-pFrogVmx		pForgVmxEntrys = NULL;
-
-
-BOOLEAN		CPUID_VMXIsSupport() {
-
-	int cpuInfo[4];
-
-	//VMX支持
-	__cpuid(cpuInfo, 0x1);
-	CpuFeaturesEcx info;
-	info.all = cpuInfo[EnumECX];
-	if (!info.fields.vmx)
-		return	FALSE;
-	
-	return	TRUE;
-}
-
-BOOLEAN		MSR_VMXisSupport() {
-
-	Ia32FeatureControlMsr VmxFeatureControl;
-	VmxFeatureControl.all = 	__readmsr(kIa32FeatureControl);
-
-	if (	VmxFeatureControl.fields.enable_vmxon)
-		return	TRUE;
-	
-
-	return	FALSE;
-}
-
-BOOLEAN		CR0_VMXisSuppor() {
-
-	Cr0 VmxCr0;
-	VmxCr0.all = __readcr0();
-
-	if (
-		VmxCr0.fields.pg &&
-		VmxCr0.fields.ne &&
-		VmxCr0.fields.pe
-		)
-		return TRUE;
-
-	return FALSE;
-}
-
-PVOID  FrogExAllocatePool(ULONG Size) {
-	PVOID  ResultAddr = 	ExAllocatePoolWithTag(NonPagedPool, Size, FrogTag);
-	if (ResultAddr != NULL) 
-		RtlZeroMemory(ResultAddr, Size);
-	
-
-	return	ResultAddr;
-}	
-
-
-
-
-//创建VMX管理结构
-BOOLEAN Forg_AllocateForgVmxRegion() {
-	ULONG		CountOfProcessor = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
-	ULONG		FrogsVmxSize = sizeof(FrogVmx) * CountOfProcessor;
-
-	pForgVmxEntrys = FrogExAllocatePool(FrogsVmxSize);
-
-	if (pForgVmxEntrys == NULL)
-		return FALSE;
-
-	return TRUE;
-}
-
-
-void	Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry) {
-	
-	if (pForgVmxEntry->VmxOnArea != NULL		&& MmIsAddressValid(pForgVmxEntry->VmxOnArea)		)	FrogExFreePool(pForgVmxEntry->VmxOnArea);
-	if (pForgVmxEntry->VmxVmcsArea != NULL		&& MmIsAddressValid(pForgVmxEntry->VmxVmcsArea)		)	FrogExFreePool(pForgVmxEntry->VmxVmcsArea);
-	if (pForgVmxEntry->VmxBitMapArea != NULL	&& MmIsAddressValid(pForgVmxEntry->VmxBitMapArea)	)	FrogExFreePool(pForgVmxEntry->VmxBitMapArea);
-	if (pForgVmxEntry->VmxHostStackArea != NULL	&& MmIsAddressValid(pForgVmxEntry->VmxHostStackArea))	FrogExFreePool(pForgVmxEntry->VmxHostStackArea);
-
-	return;
-}
-
-//创建VMCS、VMXON、BITMAP区域
-FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) {
-
-
-
-
-	pForgVmxEntry->ProcessorNumber = CpuNumber;
-
-	pForgVmxEntry->VmxOnArea = FrogExAllocatePool(PAGE_SIZE);
-
-	pForgVmxEntry->VmxVmcsArea = FrogExAllocatePool(PAGE_SIZE);
-
-	pForgVmxEntry->VmxBitMapArea = FrogExAllocatePool(PAGE_SIZE);
-
-	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize);
-
-
-	if (
-		pForgVmxEntry->VmxOnArea == NULL ||
-		pForgVmxEntry->VmxVmcsArea == NULL ||
-		pForgVmxEntry->VmxBitMapArea == NULL ||
-		pForgVmxEntry->VmxHostStackArea == NULL
-		)	goto __AllocateHyperFreePoolExit;
-
-
-	pForgVmxEntry->VmxOnAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxOnArea);
-	pForgVmxEntry->VmxVmcsAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxVmcsArea);
-	pForgVmxEntry->VmxBitMapAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxBitMapArea);
-
-
-	return	FrogSuccess;
-
-__AllocateHyperFreePoolExit:
-
-	Frog_FreeHyperRegion(pForgVmxEntry);
-
-	return	ForgAllocatePoolError;
-}
-
-//设置 VMXON、VMCS版本号
-void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry,ULONG		CpuNumber) {
-
-	Ia32VmxBasicMsr	VmxBasicMsr;
-	
-
-	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
-	CpuNumber = KeGetCurrentProcessorNumber();
-
-	
-
-	pForgVmxEntry->VmxVmcsArea->revision_identifier = VmxBasicMsr.fields.revision_identifier;
-	pForgVmxEntry->VmxOnArea->revision_identifier = VmxBasicMsr.fields.revision_identifier;
-
-}
-
-void	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue) {
-	UCHAR	State = 0;
-	State = __vmx_vmwrite(Field, FieldValue);
-	if (!State)
-	{
-		//Error
-		FrogBreak();
-		FrogPrint("FrogVmxWrite 	Error	Field = %x", Field);
-	}
-
-	return;
-}
-
-
-// ↑ ToolsFunction--------------------------------------------------------
-//--------------------------------------------------------------------------
-
-
-
-//设置一些位以支持虚拟化
-void		Frog_SetBitToEnableHyper() {
-
-	//此位要置1否则不能执行VMXON
-	Ia32FeatureControlMsr VmxFeatureControl;
-	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
-	VmxFeatureControl.fields.lock = TRUE;
-	__writemsr(kIa32FeatureControl, VmxFeatureControl.all);
-
-	//开启后允许使用VMXON
-	Cr4	VmxCr4;
-	VmxCr4.all = __readcr4();
-	VmxCr4.fields.vmxe = TRUE;
-	__writecr4(VmxCr4.all);
-
-}
-
-//检查是否支持虚拟化
-BOOLEAN		Frog_IsSupportHyper() {
-
-	if (CPUID_VMXIsSupport() &&
-		MSR_VMXisSupport() &&
-		CR0_VMXisSuppor()
-		)
-		return	TRUE;
-
-
-	return FALSE;
-
-}
-
-#define		SEGMENT_GDT	1
-#define		SEGMENT_LDT	0
-#define		RPL_MAX_MASK 3
-
-enum FrogSegment
-{
-	Frog_ES,
-	Frog_CS,
-	Frog_SS,
-	Frog_DS,
-	Frog_FS,
-	Frog_GS,
-	Frog_LDTR,
-	Frog_TR
-};
-
+pFrogCpu		Frog_Cpu = NULL;
 
 
 BOOLEAN		Frog_FullGuestVmxSelector(PUSHORT Selector, PVOID	GdtBase) {
@@ -228,17 +29,12 @@ BOOLEAN		Frog_FullGuestVmxSelector(PUSHORT Selector, PVOID	GdtBase) {
 		if (!Selector)
 			uAccessRights |= 0x10000;
 		else
-			uAccessRights = GdtEntry->Bytes.Flags1 << 8 | GdtEntry->Bytes.Flags2;
+			uAccessRights = (UINT16)GdtEntry->Bytes.Flags1 << 8 | GdtEntry->Bytes.Flags2;
 
 		Frog_Vmx_Write(GUEST_ES_BASE + i, Base);
-	
 		Frog_Vmx_Write(GUEST_ES_LIMIT + i, Limit);
-
 		Frog_Vmx_Write(GUEST_ES_AR_BYTES + i, uAccessRights);
-	
-
 		Frog_Vmx_Write(GUEST_ES_SELECTOR + i, Segment.Flags);
-
 
 		if (i < 10)		Frog_Vmx_Write(HOST_ES_SELECTOR + i, Segment.Flags);
 				
@@ -249,26 +45,50 @@ BOOLEAN		Frog_FullGuestVmxSelector(PUSHORT Selector, PVOID	GdtBase) {
 	return	TRUE;
 }
 
+ULONG 	Frog_VmxAdjustControlValue(Msr	msr , ULONG MapValue) {
+	LARGE_INTEGER	MsrValue = { 0 };
+	ULONG	AdjustedValue = 0;
+
+	AdjustedValue = MapValue;
+	MsrValue.QuadPart = __readmsr(msr);
+
+	//邓志的那本 《处理器虚拟化技术》 说反了
+	AdjustedValue |= MsrValue.LowPart;
+	AdjustedValue &= MsrValue.HighPart;
+	return AdjustedValue;
+}
 
 FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
-
+	BOOLEAN	UseTrueMsr = FALSE;
 	FrogRetCode		Status = FrogSuccess;
 	KPROCESSOR_STATE HostState = pForgVmxEntry->HostState;
+
 	short	SelectorArry[8] = {0};
+	Ia32VmxBasicMsr				VmxBasicMsr = { 0 };
+	VmxPinBasedControls			VmPinBasedControls = { 0 };
+	VmxProcessorBasedControls	VmProcessorBasedControls = { 0 };
 
-	if (__vmx_vmclear((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
-	{
-		FrogBreak();
-		FrogPrint("ForgVmClear	Error");
-		return ForgVmClearError;
-	}
+	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
+	UseTrueMsr = VmxBasicMsr.fields.vmx_capability_hint;
 
-	if (__vmx_vmptrld((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
-	{
-		FrogBreak();
-		FrogPrint("ForgVmptrld	Error");
-		return ForgVmptrldError;
-	}
+	VmPinBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsr ? __readmsr(kIa32VmxTruePinbasedCtls) : __readmsr(kIa32VmxPinbasedCtls), VmPinBasedControls.all);
+
+
+	VmProcessorBasedControls.fields.cr3_load_exiting = TRUE;
+	VmProcessorBasedControls.fields.cr3_store_exiting = TRUE;
+	VmProcessorBasedControls.fields.activate_secondary_control = TRUE;
+	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsr ? kIa32VmxTrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
+
+
+
+
+
+	Frog_Vmx_Write(PIN_BASED_VM_EXEC_CONTROL, VmPinBasedControls.all);
+	Frog_Vmx_Write(CPU_BASED_VM_EXEC_CONTROL, VmProcessorBasedControls.all);
+	Frog_Vmx_Write(IO_BITMAP_A, pForgVmxEntry->VmxBitMapArea->BitMapA);
+	Frog_Vmx_Write(IO_BITMAP_B, pForgVmxEntry->VmxBitMapArea->BitMapB);
+
+	// CR3_TARGET_COUNT
 
 	//Segment
 	SelectorArry[Frog_ES] = HostState.ContextFrame.SegEs;
@@ -295,7 +115,7 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
 	//CR0
 	Frog_Vmx_Write(GUEST_CR0, HostState.SpecialRegisters.Cr0);
 	Frog_Vmx_Write(HOST_CR0, HostState.SpecialRegisters.Cr0);
-	Frog_Vmx_Write(CR0_GUEST_HOST_MASK, HostState.SpecialRegisters.Cr0);		
+	Frog_Vmx_Write(CR0_READ_SHADOW, HostState.SpecialRegisters.Cr0);
 
 	//CR3
 	Frog_Vmx_Write(GUEST_CR3, HostState.SpecialRegisters.Cr3);
@@ -305,16 +125,21 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
 	//CR4
 	Frog_Vmx_Write(GUEST_CR4, HostState.SpecialRegisters.Cr4);
 	Frog_Vmx_Write(HOST_CR4, HostState.SpecialRegisters.Cr4);
-	Frog_Vmx_Write(CR4_GUEST_HOST_MASK, HostState.SpecialRegisters.Cr4);
+	Frog_Vmx_Write(CR4_READ_SHADOW, HostState.SpecialRegisters.Cr4);
 
-	
+	//DR7
+	Frog_Vmx_Write(GUEST_DR7, HostState.SpecialRegisters.KernelDr7);
+
+	//GUEST RSP RIP RFLAGS
+	Frog_Vmx_Write(GUEST_RSP, HostState.ContextFrame.Rsp);
+	Frog_Vmx_Write(GUEST_RIP, HostState.ContextFrame.Rip);
+	Frog_Vmx_Write(GUEST_RFLAGS, HostState.ContextFrame.EFlags);
 
 
-																			
+	//HOST RIP RSP
+	Frog_Vmx_Write(HOST_RSP, (ULONG_PTR)pForgVmxEntry->VmxHostStackArea + HostStackSize - sizeof(CONTEXT));
 
-
-
-
+	Frog_Vmx_Write(HOST_RIP,);
 
 	
 	return Status;
@@ -332,7 +157,7 @@ VOID	Frog_HyperInit(
 	//初始化VMX区域
 	FrogRetCode	Status;
 	ULONG		CpuNumber = KeGetCurrentProcessorNumber();
-	pFrogVmx		pForgVmxEntry = &pForgVmxEntrys[CpuNumber];
+	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CpuNumber];
 
 	//保存HOST机上下文
 	KeSaveStateForHibernate(&pForgVmxEntry->HostState);
@@ -361,10 +186,25 @@ VOID	Frog_HyperInit(
 		FrogPrint("Vmxon	Error");
 		goto	_HyperInitExit;
 	}
+	
+	//vmclear
+	if (__vmx_vmclear((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
+	{
+		FrogBreak();
+		FrogPrint("ForgVmClear	Error");
+		return ForgVmClearError;
+	}
+
+	//vmptrld
+	if (__vmx_vmptrld((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
+	{
+		FrogBreak();
+		FrogPrint("ForgVmptrld	Error");
+		return ForgVmptrldError;
+	}
 
 	//VMCS
 	Frog_SetupVmcs(pForgVmxEntry);
-
 
 
 
@@ -378,7 +218,7 @@ _HyperInitExit:
 
 
 FrogRetCode 	Frog_EnableHyper() {
-
+	NTSTATUS	Status;
 	//查询是否支持虚拟化
 	if (!Frog_IsSupportHyper()) {
 		FrogBreak();
@@ -398,12 +238,16 @@ FrogRetCode 	Frog_EnableHyper() {
 
 	Frog_SetBitToEnableHyper();
 
+
 	KeGenericCallDpc(Frog_HyperInit, (PVOID)__readcr3());
+
 	return	FrogSuccess;
 
 }
 
 
+
+//--------------------------------------Unload
 VOID	Frog_HyperUnLoad(
 	_In_ struct _KDPC *Dpc,
 	_In_opt_ PVOID DeferredContext,
@@ -412,7 +256,7 @@ VOID	Frog_HyperUnLoad(
 ) {
 
 	ULONG		CpuNumber = KeGetCurrentProcessorNumber();
-	pFrogVmx		pForgVmxEntry = &pForgVmxEntrys[CpuNumber];
+	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CpuNumber];
 	Frog_FreeHyperRegion(pForgVmxEntry);
 
 
@@ -424,8 +268,7 @@ void Frog_DisableHyper() {
 
 	KeGenericCallDpc(Frog_HyperUnLoad, NULL);
 
-	FrogExFreePool(pForgVmxEntrys);
-
-	//ExFreePoolWithTag(pForgVmxEntrys, FrogTag);
+	if (Frog_Cpu->pForgVmxEntrys)		FrogExFreePool(Frog_Cpu->pForgVmxEntrys);
+	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
 
 }

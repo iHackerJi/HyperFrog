@@ -208,6 +208,8 @@
   <ItemGroup>
     <ClCompile Include="DriverEntry.c" />
     <ClCompile Include="vt\vt.c" />
+    <ClCompile Include="vt\vt_help.c" />
+    <ClCompile Include="vt_exit_handle.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ExportFunction.h" />
@@ -215,10 +217,11 @@
     <ClInclude Include="PublicHeader.h" />
     <ClInclude Include="vt\ia32.h" />
     <ClInclude Include="vt\vt.h" />
-    <ClInclude Include="vt_asm.h" />
+    <ClInclude Include="vt\vt_asm.h" />
+    <ClInclude Include="vt\vt_help.h" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="vt_asm.asm" />
+    <MASM Include="vt\vt_asm.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

@@ -1,6 +1,11 @@
 #pragma once
 #include <ntifs.h>
 
+
+#define		SEGMENT_GDT	1
+#define		SEGMENT_LDT	0
+#define		RPL_MAX_MASK 3
+
 //-------------Enum
 
 typedef		enum _CpuidIndex
@@ -12,7 +17,7 @@ typedef		enum _CpuidIndex
 }CpuidIndex,*pCpuidIndex;
 
 
-enum Msr {
+typedef enum _Msr {
 	kIa32ApicBase = 0x01B,
 
 	kIa32FeatureControl = 0x03A,
@@ -68,7 +73,7 @@ enum Msr {
 	kIa32GsBase = 0xC0000101,
 	kIa32KernelGsBase = 0xC0000102,
 	kIa32TscAux = 0xC0000103,
-};
+}Msr;
 
 
 enum {
@@ -160,11 +165,12 @@ enum {
 	HOST_IA32_EFER_HIGH = 0x00002C03,
 	HOST_IA32_PERF_CTL_FULL = 0x00002C04,
 	HOST_IA32_PERF_CTL_HIGH = 0x00002C05,
-	/*
-		VMCS_LINK_POINTER = 0x00002800,
-		VMCS_LINK_POINTER_HIGH = 0x00002801,
-		GUEST_IA32_DEBUGCTL = 0x00002802,
-		GUEST_IA32_DEBUGCTL_HIGH = 0x00002803,*/
+
+	VMCS_LINK_POINTER = 0x00002800,
+	VMCS_LINK_POINTER_HIGH = 0x00002801,
+	GUEST_IA32_DEBUGCTL = 0x00002802,
+	GUEST_IA32_DEBUGCTL_HIGH = 0x00002803,
+
 	PIN_BASED_VM_EXEC_CONTROL = 0x00004000,
 	CPU_BASED_VM_EXEC_CONTROL = 0x00004002,
 	EXCEPTION_BITMAP = 0x00004004,
@@ -262,41 +268,109 @@ enum {
 
 //union----------------------------------
 
+
+
+typedef union _Ia32VmxBasicMsr {
+	unsigned __int64 all;
+	struct {
+		unsigned revision_identifier : 31;    //!< [0:30]
+		unsigned reserved1 : 1;               //!< [31]
+		unsigned region_size : 12;            //!< [32:43]
+		unsigned region_clear : 1;            //!< [44]
+		unsigned reserved2 : 3;               //!< [45:47]
+		unsigned supported_ia64 : 1;          //!< [48]
+		unsigned supported_dual_moniter : 1;  //!< [49]
+		unsigned memory_type : 4;             //!< [50:53]
+		unsigned vm_exit_report : 1;          //!< [54]
+		unsigned vmx_capability_hint : 1;     //!< [55]
+		unsigned reserved3 : 8;               //!< [56:63]
+	} fields;
+}Ia32VmxBasicMsr,*pIa32VmxBasicMsr;
+
+
+typedef union _VmxPinBasedControls
+{
+	ULONG32 all;
+	struct
+	{
+		unsigned ExternalInterruptExiting : 1;    // [0]
+		unsigned Reserved1 : 2;                   // [1-2]
+		unsigned NMIExiting : 1;                  // [3]
+		unsigned Reserved2 : 1;                   // [4]
+		unsigned VirtualNMIs : 1;                 // [5]
+		unsigned ActivateVMXPreemptionTimer : 1;  // [6]
+		unsigned ProcessPostedInterrupts : 1;     // [7]
+	} Fields;
+} VmxPinBasedControls, *pVmxPinBasedControls;
+
+typedef union _VmxProcessorBasedControls {
+	unsigned int all;
+	struct {
+		unsigned reserved1 : 2;                   //!< [0:1]
+		unsigned interrupt_window_exiting : 1;    //!< [2]
+		unsigned use_tsc_offseting : 1;           //!< [3]
+		unsigned reserved2 : 3;                   //!< [4:6]
+		unsigned hlt_exiting : 1;                 //!< [7]
+		unsigned reserved3 : 1;                   //!< [8]
+		unsigned invlpg_exiting : 1;              //!< [9]
+		unsigned mwait_exiting : 1;               //!< [10]
+		unsigned rdpmc_exiting : 1;               //!< [11]
+		unsigned rdtsc_exiting : 1;               //!< [12]
+		unsigned reserved4 : 2;                   //!< [13:14]
+		unsigned cr3_load_exiting : 1;            //!< [15]
+		unsigned cr3_store_exiting : 1;           //!< [16]
+		unsigned reserved5 : 2;                   //!< [17:18]
+		unsigned cr8_load_exiting : 1;            //!< [19]
+		unsigned cr8_store_exiting : 1;           //!< [20]
+		unsigned use_tpr_shadow : 1;              //!< [21]
+		unsigned nmi_window_exiting : 1;          //!< [22]
+		unsigned mov_dr_exiting : 1;              //!< [23]
+		unsigned unconditional_io_exiting : 1;    //!< [24]
+		unsigned use_io_bitmaps : 1;              //!< [25]
+		unsigned reserved6 : 1;                   //!< [26]
+		unsigned monitor_trap_flag : 1;           //!< [27]
+		unsigned use_msr_bitmaps : 1;             //!< [28]
+		unsigned monitor_exiting : 1;             //!< [29]
+		unsigned pause_exiting : 1;               //!< [30]
+		unsigned activate_secondary_control : 1;  //!< [31]
+	} fields;
+}VmxProcessorBasedControls,*pVmxProcessorBasedControls;
+
 typedef union _CpuFeaturesEcx {
 	ULONG32 all;
 	struct {
-		ULONG32 sse3 : 1;       //!< [0] Streaming SIMD Extensions 3 (SSE3)
-		ULONG32 pclmulqdq : 1;  //!< [1] PCLMULQDQ
-		ULONG32 dtes64 : 1;     //!< [2] 64-bit DS Area
-		ULONG32 monitor : 1;    //!< [3] MONITOR/WAIT
-		ULONG32 ds_cpl : 1;     //!< [4] CPL qualified Debug Store
-		ULONG32 vmx : 1;        //!< [5] Virtual Machine Technology
-		ULONG32 smx : 1;        //!< [6] Safer Mode Extensions
-		ULONG32 est : 1;        //!< [7] Enhanced Intel Speedstep Technology
-		ULONG32 tm2 : 1;        //!< [8] Thermal monitor 2
-		ULONG32 ssse3 : 1;      //!< [9] Supplemental Streaming SIMD Extensions 3
-		ULONG32 cid : 1;        //!< [10] L1 context ID
-		ULONG32 sdbg : 1;       //!< [11] IA32_DEBUG_INTERFACE MSR
-		ULONG32 fma : 1;        //!< [12] FMA extensions using YMM state
-		ULONG32 cx16 : 1;       //!< [13] CMPXCHG16B
-		ULONG32 xtpr : 1;       //!< [14] xTPR Update Control
-		ULONG32 pdcm : 1;       //!< [15] Performance/Debug capability MSR
-		ULONG32 reserved : 1;   //!< [16] Reserved
-		ULONG32 pcid : 1;       //!< [17] Process-context identifiers
-		ULONG32 dca : 1;        //!< [18] prefetch from a memory mapped device
-		ULONG32 sse4_1 : 1;     //!< [19] SSE4.1
-		ULONG32 sse4_2 : 1;     //!< [20] SSE4.2
-		ULONG32 x2_apic : 1;    //!< [21] x2APIC feature
-		ULONG32 movbe : 1;      //!< [22] MOVBE instruction
-		ULONG32 popcnt : 1;     //!< [23] POPCNT instruction
-		ULONG32 reserved3 : 1;  //!< [24] one-shot operation using a TSC deadline
-		ULONG32 aes : 1;        //!< [25] AESNI instruction
-		ULONG32 xsave : 1;      //!< [26] XSAVE/XRSTOR feature
-		ULONG32 osxsave : 1;    //!< [27] enable XSETBV/XGETBV instructions
-		ULONG32 avx : 1;        //!< [28] AVX instruction extensions
-		ULONG32 f16c : 1;       //!< [29] 16-bit floating-point conversion
-		ULONG32 rdrand : 1;     //!< [30] RDRAND instruction
-		ULONG32 not_used : 1;   //!< [31] Always 0 (a.k.a. HypervisorPresent)
+		unsigned sse3 : 1;       //!< [0] Streaming SIMD Extensions 3 (SSE3)
+		unsigned pclmulqdq : 1;  //!< [1] PCLMULQDQ
+		unsigned dtes64 : 1;     //!< [2] 64-bit DS Area
+		unsigned monitor : 1;    //!< [3] MONITOR/WAIT
+		unsigned ds_cpl : 1;     //!< [4] CPL qualified Debug Store
+		unsigned vmx : 1;        //!< [5] Virtual Machine Technology
+		unsigned smx : 1;        //!< [6] Safer Mode Extensions
+		unsigned est : 1;        //!< [7] Enhanced Intel Speedstep Technology
+		unsigned tm2 : 1;        //!< [8] Thermal monitor 2
+		unsigned ssse3 : 1;      //!< [9] Supplemental Streaming SIMD Extensions 3
+		unsigned cid : 1;        //!< [10] L1 context ID
+		unsigned sdbg : 1;       //!< [11] IA32_DEBUG_INTERFACE MSR
+		unsigned fma : 1;        //!< [12] FMA extensions using YMM state
+		unsigned cx16 : 1;       //!< [13] CMPXCHG16B
+		unsigned xtpr : 1;       //!< [14] xTPR Update Control
+		unsigned pdcm : 1;       //!< [15] Performance/Debug capability MSR
+		unsigned reserved : 1;   //!< [16] Reserved
+		unsigned pcid : 1;       //!< [17] Process-context identifiers
+		unsigned dca : 1;        //!< [18] prefetch from a memory mapped device
+		unsigned sse4_1 : 1;     //!< [19] SSE4.1
+		unsigned sse4_2 : 1;     //!< [20] SSE4.2
+		unsigned x2_apic : 1;    //!< [21] x2APIC feature
+		unsigned movbe : 1;      //!< [22] MOVBE instruction
+		unsigned popcnt : 1;     //!< [23] POPCNT instruction
+		unsigned reserved3 : 1;  //!< [24] one-shot operation using a TSC deadline
+		unsigned aes : 1;        //!< [25] AESNI instruction
+		unsigned xsave : 1;      //!< [26] XSAVE/XRSTOR feature
+		unsigned osxsave : 1;    //!< [27] enable XSETBV/XGETBV instructions
+		unsigned avx : 1;        //!< [28] AVX instruction extensions
+		unsigned f16c : 1;       //!< [29] 16-bit floating-point conversion
+		unsigned rdrand : 1;     //!< [30] RDRAND instruction
+		unsigned not_used : 1;   //!< [31] Always 0 (a.k.a. HypervisorPresent)
 	} fields;
 }CpuFeaturesEcx,*pCpuFeaturesEcx;
 

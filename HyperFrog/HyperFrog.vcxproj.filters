@@ -34,6 +34,12 @@
     <ClCompile Include="vt\vt.c">
       <Filter>Driver Files\VT\Vt_Source</Filter>
     </ClCompile>
+    <ClCompile Include="vt\vt_help.c">
+      <Filter>Driver Files\VT\Vt_Source</Filter>
+    </ClCompile>
+    <ClCompile Include="vt_exit_handle.c">
+      <Filter>Driver Files\VT\Vt_Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PublicHeader.h">
@@ -48,15 +54,18 @@
     <ClInclude Include="ExportFunction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vt_asm.h">
-      <Filter>Driver Files\VT\Vt_Header</Filter>
-    </ClInclude>
     <ClInclude Include="Global.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="vt\vt_asm.h">
+      <Filter>Driver Files\VT\Vt_Header</Filter>
+    </ClInclude>
+    <ClInclude Include="vt\vt_help.h">
+      <Filter>Driver Files\VT\Vt_Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="vt_asm.asm">
+    <MASM Include="vt\vt_asm.asm">
       <Filter>Driver Files\VT\Vt_Source</Filter>
     </MASM>
   </ItemGroup>
