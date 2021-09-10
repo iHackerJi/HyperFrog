@@ -25,7 +25,7 @@ typedef struct _FrogVmx {
 
 	pVmControlStructure		VmxOnArea;
 	pVmControlStructure		VmxVmcsArea;
-	pVmxIoBitMap			VmxBitMapArea;
+	VmxIoBitMap				VmxBitMapArea;
 	PVOID					VmxHostStackArea;
 
 	PHYSICAL_ADDRESS		VmxOnAreaPhysicalAddr;

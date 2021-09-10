@@ -69,14 +69,14 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
 	VmxProcessorBasedControls	VmProcessorBasedControls = { 0 };
 
 	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
-	UseTrueMsr = VmxBasicMsr.fields.vmx_capability_hint;
+	UseTrueMsr = (BOOLEAN)VmxBasicMsr.fields.vmx_capability_hint;
 
 	VmPinBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsr ? __readmsr(kIa32VmxTruePinbasedCtls) : __readmsr(kIa32VmxPinbasedCtls), VmPinBasedControls.all);
 
 
 	VmProcessorBasedControls.fields.cr3_load_exiting = TRUE;
 	VmProcessorBasedControls.fields.cr3_store_exiting = TRUE;
-	VmProcessorBasedControls.fields.activate_secondary_control = TRUE;
+	//VmProcessorBasedControls.fields.activate_secondary_control = TRUE;
 	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsr ? kIa32VmxTrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
 
 
@@ -85,8 +85,8 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
 
 	Frog_Vmx_Write(PIN_BASED_VM_EXEC_CONTROL, VmPinBasedControls.all);
 	Frog_Vmx_Write(CPU_BASED_VM_EXEC_CONTROL, VmProcessorBasedControls.all);
-	Frog_Vmx_Write(IO_BITMAP_A, pForgVmxEntry->VmxBitMapArea->BitMapA);
-	Frog_Vmx_Write(IO_BITMAP_B, pForgVmxEntry->VmxBitMapArea->BitMapB);
+	Frog_Vmx_Write(IO_BITMAP_A, (ULONG_PTR)pForgVmxEntry->VmxBitMapArea.BitMapA);
+	Frog_Vmx_Write(IO_BITMAP_B, (ULONG_PTR)pForgVmxEntry->VmxBitMapArea.BitMapB);
 
 	// CR3_TARGET_COUNT
 
@@ -139,7 +139,7 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) {
 	//HOST RIP RSP
 	Frog_Vmx_Write(HOST_RSP, (ULONG_PTR)pForgVmxEntry->VmxHostStackArea + HostStackSize - sizeof(CONTEXT));
 
-	Frog_Vmx_Write(HOST_RIP,);
+	Frog_Vmx_Write(HOST_RIP, (ULONG_PTR)VmxEntryPointer);
 
 	
 	return Status;
@@ -192,7 +192,7 @@ VOID	Frog_HyperInit(
 	{
 		FrogBreak();
 		FrogPrint("ForgVmClear	Error");
-		return ForgVmClearError;
+		goto _HyperInitExit;
 	}
 
 	//vmptrld
@@ -200,12 +200,14 @@ VOID	Frog_HyperInit(
 	{
 		FrogBreak();
 		FrogPrint("ForgVmptrld	Error");
-		return ForgVmptrldError;
+		goto _HyperInitExit;
 	}
 
+	FrogBreak();
 	//VMCS
 	Frog_SetupVmcs(pForgVmxEntry);
 
+	__vmx_vmlaunch();
 
 
 _HyperInitExit:

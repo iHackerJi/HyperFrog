@@ -208,8 +208,8 @@
   <ItemGroup>
     <ClCompile Include="DriverEntry.c" />
     <ClCompile Include="vt\vt.c" />
+    <ClCompile Include="vt\vt_exit_handle.c" />
     <ClCompile Include="vt\vt_help.c" />
-    <ClCompile Include="vt_exit_handle.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ExportFunction.h" />

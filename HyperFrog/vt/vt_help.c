@@ -73,7 +73,7 @@ void	Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry) {
 
 	if (pForgVmxEntry->VmxOnArea != NULL && MmIsAddressValid(pForgVmxEntry->VmxOnArea))	FrogExFreePool(pForgVmxEntry->VmxOnArea);
 	if (pForgVmxEntry->VmxVmcsArea != NULL && MmIsAddressValid(pForgVmxEntry->VmxVmcsArea))	FrogExFreePool(pForgVmxEntry->VmxVmcsArea);
-	if (pForgVmxEntry->VmxBitMapArea->BitMap != NULL && MmIsAddressValid(pForgVmxEntry->VmxBitMapArea->BitMap))	FrogExFreePool(pForgVmxEntry->VmxBitMapArea->BitMap);
+	if (pForgVmxEntry->VmxBitMapArea.BitMap != NULL && MmIsAddressValid(pForgVmxEntry->VmxBitMapArea.BitMap))	FrogExFreePool(pForgVmxEntry->VmxBitMapArea.BitMap);
 	if (pForgVmxEntry->VmxHostStackArea != NULL && MmIsAddressValid(pForgVmxEntry->VmxHostStackArea))	FrogExFreePool(pForgVmxEntry->VmxHostStackArea);
 
 	return;
@@ -88,9 +88,13 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) 
 
 	pForgVmxEntry->VmxVmcsArea = FrogExAllocatePool(PAGE_SIZE);
 
-	pForgVmxEntry->VmxBitMapArea->BitMap = FrogExAllocatePool(PAGE_SIZE * 2);
-	pForgVmxEntry->VmxBitMapArea->BitMapA = pForgVmxEntry->VmxBitMapArea->BitMap;
-	pForgVmxEntry->VmxBitMapArea->BitMapB = (PVOID)((ULONG_PTR)pForgVmxEntry->VmxBitMapArea->BitMap + PAGE_SIZE);
+	FrogBreak();
+
+	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE * 2);
+
+	if (pForgVmxEntry->VmxBitMapArea.BitMap == NULL)	goto __AllocateHyperFreePoolExit;
+	pForgVmxEntry->VmxBitMapArea.BitMapA = pForgVmxEntry->VmxBitMapArea.BitMap;
+	pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG_PTR)pForgVmxEntry->VmxBitMapArea.BitMap + PAGE_SIZE);
 
 	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize);
 
@@ -98,7 +102,7 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) 
 	if (
 		pForgVmxEntry->VmxOnArea == NULL ||
 		pForgVmxEntry->VmxVmcsArea == NULL ||
-		pForgVmxEntry->VmxBitMapArea->BitMap == NULL ||
+		pForgVmxEntry->VmxBitMapArea.BitMap == NULL ||
 		pForgVmxEntry->VmxHostStackArea == NULL
 		)	goto __AllocateHyperFreePoolExit;
 
@@ -110,7 +114,7 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) 
 	return	FrogSuccess;
 
 __AllocateHyperFreePoolExit:
-
+	FrogBreak();
 	Frog_FreeHyperRegion(pForgVmxEntry);
 
 	return	ForgAllocatePoolError;

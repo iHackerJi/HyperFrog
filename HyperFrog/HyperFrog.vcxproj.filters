@@ -37,7 +37,7 @@
     <ClCompile Include="vt\vt_help.c">
       <Filter>Driver Files\VT\Vt_Source</Filter>
     </ClCompile>
-    <ClCompile Include="vt_exit_handle.c">
+    <ClCompile Include="vt\vt_exit_handle.c">
       <Filter>Driver Files\VT\Vt_Source</Filter>
     </ClCompile>
   </ItemGroup>
