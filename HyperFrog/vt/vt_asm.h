@@ -1,4 +1,4 @@
 #pragma once
-#include "PublicHeader.h"
+#include <ntifs.h>
 
 EXTERN_C	void	VmxEntryPointer();

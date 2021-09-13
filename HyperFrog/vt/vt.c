@@ -168,11 +168,13 @@ VOID	Frog_HyperInit(
 	size_t		VmxErrorCode = 0;
 
 
-	Frog_SetCr0BitToEnableHyper(pForgVmxEntry);
+	Frog_SetCr0andCr4BitToEnableHyper(pForgVmxEntry);
 
 	//保存HOST机上下文
 	KeSaveStateForHibernate(&pForgVmxEntry->HostState);
+
 	RtlCaptureContext(&pForgVmxEntry->HostState.ContextFrame);
+
 	pForgVmxEntry->HostCr3 = (ULONG64)DeferredContext;
 
 	//申请VMCS、VMXON、等等区域
@@ -190,14 +192,14 @@ VOID	Frog_HyperInit(
 	Frog_SetHyperRegionVersion(pForgVmxEntry, CpuNumber);
 
 	//VMXON
-
 	if (__vmx_on((UINT64*)&pForgVmxEntry->VmxOnAreaPhysicalAddr))
 	{
 		FrogBreak();
 		FrogPrint("Vmxon	Error");
 		goto	_HyperInitExit;
 	}
-	
+
+
 	//vmclear
 	if (__vmx_vmclear((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
 	{
@@ -206,6 +208,7 @@ VOID	Frog_HyperInit(
 		goto _HyperInitExit;
 	}
 
+
 	//vmptrld
 	if (__vmx_vmptrld((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
 	{
@@ -213,6 +216,7 @@ VOID	Frog_HyperInit(
 		FrogPrint("ForgVmptrld	Error");
 		goto _HyperInitExit;
 	}
+
 
 	//VMCS
 	Status = Frog_SetupVmcs(pForgVmxEntry);
@@ -223,6 +227,7 @@ VOID	Frog_HyperInit(
 	}
 
 	__vmx_vmlaunch();
+
 	__vmx_vmread(VM_INSTRUCTION_ERROR,&VmxErrorCode);
 
 
@@ -259,6 +264,7 @@ FrogRetCode 	Frog_EnableHyper() {
 	//设置MSR的位以支持虚拟化
 	Frog_SetMsrBitToEnableHyper();
 
+
 	KeGenericCallDpc(Frog_HyperInit, (PVOID)__readcr3());
 
 	return	FrogSuccess;
@@ -268,13 +274,27 @@ FrogRetCode 	Frog_EnableHyper() {
 
 
 //--------------------------------------Unload
+
+
+
+
+
 void	Frog_HyperUnLoad(ULONG	CurrentProcessor) {
 
 
 	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
 
-	//这里需要每个处理器修复回去
-	__writecr4(pForgVmxEntry->oldCr4.all);
+	FrogBreak();
+	if (!pForgVmxEntry->OrigCr4BitVmxeIsSet)
+	{
+		#define ia32_cr4_vmxe			13
+		ULONG64 cr4 = __readcr4();
+		_bittestandreset64(&cr4, ia32_cr4_vmxe);
+		__writecr4(cr4);
+	}
+
+	
+
 
 
 	Frog_FreeHyperRegion(pForgVmxEntry);
@@ -283,8 +303,8 @@ void	Frog_HyperUnLoad(ULONG	CurrentProcessor) {
 }
 
 FrogRetCode Frog_DisableHyper() {
-
 	ULONG	ProcessorNumber = Frog_Cpu->ProcessOrNumber;
+
 	for (ULONG i = 0; i < ProcessorNumber; i++)
 	{
 
@@ -304,18 +324,16 @@ FrogRetCode Frog_DisableHyper() {
 		Affinity.Group = processor_number.Group;
 		Affinity.Mask = 1ull << processor_number.Number;
 
+		KeSetSystemGroupAffinityThread(&Affinity, &oldAffinity);
+
 		Frog_HyperUnLoad(i);
 
+		KeRevertToUserGroupAffinityThread(&oldAffinity);
 
-		KeSetSystemGroupAffinityThread(&Affinity, &oldAffinity);
 	}
-
-	__writemsr(kIa32FeatureControl,Frog_Cpu->oldFeatureControlMsr.all);
-
+	__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all);
 	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
-	Frog_Cpu->pForgVmxEntrys->HyperIsEnable = FALSE;
 
 
-	
 	return	FrogSuccess;
 }

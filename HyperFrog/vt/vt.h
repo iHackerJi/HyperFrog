@@ -1,6 +1,6 @@
 #pragma once
 #include <intrin.h>
-#include "PublicHeader.h"
+#include "tools/tools.h"
 #include "ia32.h"
 #include "ExportFunction.h"
 #include "vt_asm.h"
@@ -20,8 +20,8 @@ typedef struct _VmxIoBitMap {
 }VmxIoBitMap,*pVmxIoBitMap;
 
 typedef struct _FrogVmx {
-	Cr4		oldCr4;
-
+	BOOLEAN			OrigCr4BitVmxeIsSet;
+	
 	KPROCESSOR_STATE		HostState;
 	ULONG64					HostCr3;
 
@@ -42,7 +42,7 @@ typedef struct _FrogVmx {
 
 typedef struct _FrogCpu {
 	ULONG	ProcessOrNumber;
-	Ia32FeatureControlMsr	oldFeatureControlMsr;
+	Ia32FeatureControlMsr	OrigFeatureControlMsr;
 	pFrogVmx		pForgVmxEntrys;
 }FrogCpu,*pFrogCpu;
 

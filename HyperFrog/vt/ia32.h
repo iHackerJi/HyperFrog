@@ -451,7 +451,7 @@ typedef union _Cr0 {
 		unsigned cd : 1;          //!< [30] Cache Disable
 		unsigned pg : 1;          //!< [31] Paging Enabled
 	} fields;
-}Cr0,*pCr0;
+}Cr0,*pCr0; 
 
 
 typedef union _Ia32FeatureControlMsr {

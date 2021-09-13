@@ -26,6 +26,9 @@
     <Filter Include="Driver Files\VT\Vt_Header">
       <UniqueIdentifier>{10b6430a-982c-4c2a-b5e7-7ec5582dcaff}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Driver Files\Tools">
+      <UniqueIdentifier>{a3ae259f-9dd7-4188-8c04-3d9e26b5cca7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DriverEntry.c">
@@ -40,11 +43,11 @@
     <ClCompile Include="vt\vt_exit_handle.c">
       <Filter>Driver Files\VT\Vt_Source</Filter>
     </ClCompile>
+    <ClCompile Include="tools\tools.c">
+      <Filter>Driver Files\Tools</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="PublicHeader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="vt\ia32.h">
       <Filter>Driver Files\VT\Vt_Header</Filter>
     </ClInclude>
@@ -62,6 +65,9 @@
     </ClInclude>
     <ClInclude Include="vt\vt_help.h">
       <Filter>Driver Files\VT\Vt_Header</Filter>
+    </ClInclude>
+    <ClInclude Include="tools\tools.h">
+      <Filter>Driver Files\Tools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

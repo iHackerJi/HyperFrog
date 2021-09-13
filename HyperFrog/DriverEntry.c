@@ -1,8 +1,12 @@
-#include "PublicHeader.h"
+#include "tools/tools.h"
 #include "vt/vt.h"
 
 
 void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
+
+	FrogBreak();
+
+
 	FrogRetCode	Status;
 	Status = Frog_DisableHyper();
 	if (!Frog_SUCCESS(Status))
@@ -19,6 +23,7 @@ NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
 	FrogRetCode	Code;
 
 	Code = Frog_EnableHyper();
+
 
 	
 

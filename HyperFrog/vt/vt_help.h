@@ -15,5 +15,5 @@ void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber);
 FrogRetCode		Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue);
 BOOLEAN		Frog_IsSupportHyper();
 
-void		Frog_SetCr0BitToEnableHyper(pFrogVmx		pForgVmxEntry);
+void		Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry);
 void		Frog_SetMsrBitToEnableHyper();
