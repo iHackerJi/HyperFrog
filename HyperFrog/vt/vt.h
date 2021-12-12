@@ -1,8 +1,8 @@
 #pragma once
 #include <intrin.h>
-#include "tools/tools.h"
+#include "../tools/tools.h"
 #include "ia32.h"
-#include "ExportFunction.h"
+#include "../ExportFunction.h"
 #include "vt_asm.h"
 
 
@@ -23,12 +23,12 @@ typedef struct _FrogVmx {
 	BOOLEAN			OrigCr4BitVmxeIsSet;
 	
 	KPROCESSOR_STATE		HostState;
-	ULONG64					HostCr3;
+	ULONG64						HostCr3;
 
 	pVmControlStructure		VmxOnArea;
 	pVmControlStructure		VmxVmcsArea;
-	VmxIoBitMap				VmxBitMapArea;
-	PVOID					VmxHostStackArea;
+	VmxIoBitMap					VmxBitMapArea;
+	PVOID								VmxHostStackArea;
 
 	PHYSICAL_ADDRESS		VmxOnAreaPhysicalAddr;
 	PHYSICAL_ADDRESS		VmxVmcsAreaPhysicalAddr;
@@ -41,9 +41,9 @@ typedef struct _FrogVmx {
 }FrogVmx, *pFrogVmx;
 
 typedef struct _FrogCpu {
-	ULONG	ProcessOrNumber;
+	ULONG							ProcessOrNumber;
 	Ia32FeatureControlMsr	OrigFeatureControlMsr;
-	pFrogVmx		pForgVmxEntrys;
+	pFrogVmx						pForgVmxEntrys;
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {
@@ -57,19 +57,25 @@ typedef		enum _FrogRetCode {
 }FrogRetCode;
 
 
-
-enum FrogSegment
+typedef struct _Frog_GuestContext
 {
-	Frog_ES,
-	Frog_CS,
-	Frog_SS,
-	Frog_DS,
-	Frog_FS,
-	Frog_GS,
-	Frog_LDTR,
-	Frog_TR
-};
-
+	ULONG64 Rax;
+	ULONG64 Rcx;
+	ULONG64 Rdx;
+	ULONG64 Rbx;
+	ULONG64 Rbp;
+	ULONG64 Rsi;
+	ULONG64 Rdi;
+	ULONG64 R8;
+	ULONG64 R9;
+	ULONG64 R10;
+	ULONG64 R11;
+	ULONG64 R12;
+	ULONG64 R13;
+	ULONG64 R14;
+	ULONG64 R15;
+	ULONG64 RSP;
+}Frog_GuestContext, *pFrog_GuestContext;
 
 FrogRetCode 	Frog_EnableHyper();
 FrogRetCode Frog_DisableHyper();

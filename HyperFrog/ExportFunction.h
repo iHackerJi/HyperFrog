@@ -33,3 +33,10 @@ KeSignalCallDpcSynchronize(
 VOID	KeSaveStateForHibernate(
 	IN  PKPROCESSOR_STATE ProcessorState
 );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlCaptureContext(
+	_Out_ PCONTEXT ContextRecord
+);

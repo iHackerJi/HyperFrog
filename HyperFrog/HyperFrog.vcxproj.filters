@@ -71,7 +71,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="vt\vt_asm.asm">
+    <MASM Include="vt\vt.asm">
       <Filter>Driver Files\VT\Vt_Source</Filter>
     </MASM>
   </ItemGroup>

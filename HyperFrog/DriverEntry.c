@@ -3,10 +3,6 @@
 
 
 void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
-
-	FrogBreak();
-
-
 	FrogRetCode	Status;
 	Status = Frog_DisableHyper();
 	if (!Frog_SUCCESS(Status))
@@ -20,8 +16,7 @@ void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
 	pDriverObj->DriverUnload = UnloadDriver;
 
-	FrogRetCode	Code;
-
+	FrogRetCode	Code = FrogSuccess;
 	Code = Frog_EnableHyper();
 
 
