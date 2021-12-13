@@ -4,6 +4,7 @@ extern vmexit_handle:proc
 .CODE
 
 VmxEntryPointer	Proc
+ int 3
  push rsp
  push r15
  push r14
@@ -39,5 +40,6 @@ VmxEntryPointer	Proc
  pop r14
  pop r15
  add rsp,8
+
 VmxEntryPointer Endp
 END

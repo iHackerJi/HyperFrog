@@ -11,7 +11,9 @@
 #define		Frog_SUCCESS(Status) (((FrogRetCode)(Status)) >= 0)
 #define		FrogExFreePool(mem) 	ExFreePoolWithTag(mem, FrogTag)
 
-
+#define		MAKEQWORD(low, hi) ((((ULONGLONG)low) & 0xFFFFFFFF) | ((((ULONGLONG)hi) & 0xFFFFFFFF) << 32))
+#define		LODWORD(qword) (((ULONGLONG)(qword)) & 0xFFFFFFFF)
+#define		HIDWORD(qword) ((((ULONGLONG)(qword)) >> 32) & 0xFFFFFFFF)
 
 typedef struct _VmxIoBitMap {
 	PVOID	BitMap;
