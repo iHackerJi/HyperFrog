@@ -93,7 +93,7 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 
 	pForgVmxEntry->VmxOnArea = FrogExAllocatePool(PAGE_SIZE);
 	pForgVmxEntry->VmxVmcsArea = FrogExAllocatePool(PAGE_SIZE);
-	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE * 2);
+	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE );
 	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize);
 
 	if (
@@ -104,8 +104,8 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 		)	goto __Exit;
 
 
-	pForgVmxEntry->VmxBitMapArea.BitMapA = pForgVmxEntry->VmxBitMapArea.BitMap;
-	pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG64)pForgVmxEntry->VmxBitMapArea.BitMap + PAGE_SIZE);
+	//pForgVmxEntry->VmxBitMapArea.BitMapA = pForgVmxEntry->VmxBitMapArea.BitMap;
+	//pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG64)pForgVmxEntry->VmxBitMapArea.BitMap + PAGE_SIZE);
 
 	pForgVmxEntry->VmxOnAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxOnArea);
 	pForgVmxEntry->VmxVmcsAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxVmcsArea);
@@ -253,8 +253,9 @@ VOID		Frog_GetSelectInfo(
 	}
 
 	pGdtEntry = (PKGDTENTRY64)((ULONG64)pGdtr->Base + Segment.Index);
+    *pLimit = __segmentlimit((ULONG32)Select);
 	*pBase = ((pGdtEntry->Bytes.BaseHigh << 24) | (pGdtEntry->Bytes.BaseMiddle << 16) | (pGdtEntry->BaseLow)) & 0xFFFFFFFF;
-	*pLimit = __segmentlimit((ULONG32)Select);
+  //  *pBase |= ((pGdtEntry->Bits.Type & 0x10) == 0) ? ((uintptr_t)pGdtEntry->BaseUpper << 32) : 0;
 	*pAccess = (pGdtEntry->Bytes.Flags1) | (pGdtEntry->Bytes.Flags2 << 8);
 	*pAccess |= (pGdtEntry->Bits.Present) ? 0 : 0x10000;	//判断在不在内存，即P位
 }
@@ -266,49 +267,51 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	PKDESCRIPTOR		pGdtr = &HostState.SpecialRegisters.Gdtr;
 	ULONG64				uBase, uLimit, uAccess;
 
-	ULONG_PTR link_pointer = 0xFFFFFFFFFFFFFFFFL;
-	Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, link_pointer);
+	//ULONG_PTR link_pointer = 0xFFFFFFFFFFFFFFFFL;
+	//Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, link_pointer);
 
-	HostState.ContextFrame.SegEs = HostState.ContextFrame.SegEs & 0xf8;
-	HostState.ContextFrame.SegCs = HostState.ContextFrame.SegCs & 0xf8;
-	HostState.ContextFrame.SegDs = HostState.ContextFrame.SegDs & 0xf8;
-	HostState.ContextFrame.SegSs = HostState.ContextFrame.SegSs & 0xf8;
-	HostState.ContextFrame.SegFs = HostState.ContextFrame.SegFs & 0xf8;
-	HostState.ContextFrame.SegGs = HostState.ContextFrame.SegGs & 0xf8;
+	//HostState.ContextFrame.SegEs = HostState.ContextFrame.SegEs & 0xf8;
+	//HostState.ContextFrame.SegCs = HostState.ContextFrame.SegCs & 0xf8;
+	//HostState.ContextFrame.SegDs = HostState.ContextFrame.SegDs & 0xf8;
+	//HostState.ContextFrame.SegSs = HostState.ContextFrame.SegSs & 0xf8;
+	//HostState.ContextFrame.SegFs = HostState.ContextFrame.SegFs & 0xf8;
+	//HostState.ContextFrame.SegGs = HostState.ContextFrame.SegGs & 0xf8;
+    //HostState.SpecialRegisters.Ldtr = HostState.SpecialRegisters.Ldtr & 0xf8;
+    //HostState.SpecialRegisters.Tr = HostState.SpecialRegisters.Tr & 0xf8;
 
 	//	GUEST
 	//ES
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegEs, &uBase, &uLimit, &uAccess);
-	Status |= Frog_Vmx_Write(GUEST_ES_SELECTOR, HostState.ContextFrame.SegEs);
+	Status |= Frog_Vmx_Write(GUEST_ES_SELECTOR, HostState.ContextFrame.SegEs );
 	Status |= Frog_Vmx_Write(GUEST_ES_LIMIT, uLimit);
 	Status |= Frog_Vmx_Write(GUEST_ES_BASE, uBase);
 	Status |= Frog_Vmx_Write(GUEST_ES_AR_BYTES, uAccess);
-	Status |= Frog_Vmx_Write(HOST_ES_SELECTOR, HostState.ContextFrame.SegEs);
+	Status |= Frog_Vmx_Write(HOST_ES_SELECTOR, HostState.ContextFrame.SegEs & (~RPL_MAX_MASK));
 
 	//CS
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegCs, &uBase, &uLimit, &uAccess);
-	Status |= Frog_Vmx_Write(GUEST_CS_SELECTOR, HostState.ContextFrame.SegCs);
+	Status |= Frog_Vmx_Write(GUEST_CS_SELECTOR, HostState.ContextFrame.SegCs );
 	Status |= Frog_Vmx_Write(GUEST_CS_LIMIT, uLimit);
 	Status |= Frog_Vmx_Write(GUEST_CS_BASE, uBase);
 	Status |= Frog_Vmx_Write(GUEST_CS_AR_BYTES, uAccess);
 
-	Status |= Frog_Vmx_Write(HOST_CS_SELECTOR, HostState.ContextFrame.SegCs);
+	Status |= Frog_Vmx_Write(HOST_CS_SELECTOR, HostState.ContextFrame.SegCs  & (~RPL_MAX_MASK));
 	//SS
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegSs, &uBase, &uLimit, &uAccess);
-	Status |= Frog_Vmx_Write(GUEST_SS_SELECTOR, HostState.ContextFrame.SegSs);
+	Status |= Frog_Vmx_Write(GUEST_SS_SELECTOR, HostState.ContextFrame.SegSs );
 	Status |= Frog_Vmx_Write(GUEST_SS_LIMIT, uLimit);
 	Status |= Frog_Vmx_Write(GUEST_SS_BASE, uBase);
 	Status |= Frog_Vmx_Write(GUEST_SS_AR_BYTES, uAccess);
 
-	Status |= Frog_Vmx_Write(HOST_SS_SELECTOR, HostState.ContextFrame.SegSs);
+	Status |= Frog_Vmx_Write(HOST_SS_SELECTOR, HostState.ContextFrame.SegSs  &  (~RPL_MAX_MASK));
 	//DS
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegDs, &uBase, &uLimit, &uAccess);
-	Status |= Frog_Vmx_Write(GUEST_DS_SELECTOR, HostState.ContextFrame.SegDs);
+	Status |= Frog_Vmx_Write(GUEST_DS_SELECTOR, HostState.ContextFrame.SegDs  );
 	Status |= Frog_Vmx_Write(GUEST_DS_LIMIT, uLimit);
 	Status |= Frog_Vmx_Write(GUEST_DS_BASE, uBase);
 	Status |= Frog_Vmx_Write(GUEST_DS_AR_BYTES, uAccess);
 
-	Status |= Frog_Vmx_Write(HOST_DS_SELECTOR, HostState.ContextFrame.SegDs);
+	Status |= Frog_Vmx_Write(HOST_DS_SELECTOR, HostState.ContextFrame.SegDs &  (~RPL_MAX_MASK));
 	//FS
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegFs, &uBase, &uLimit, &uAccess);
 	Status |= Frog_Vmx_Write(GUEST_FS_SELECTOR, HostState.ContextFrame.SegFs);
@@ -317,17 +320,17 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	Status |= Frog_Vmx_Write(GUEST_FS_AR_BYTES, uAccess);
 
 	Status |= Frog_Vmx_Write(HOST_FS_BASE, uBase);
-	Status |= Frog_Vmx_Write(HOST_FS_SELECTOR, HostState.ContextFrame.SegFs);
+	Status |= Frog_Vmx_Write(HOST_FS_SELECTOR, HostState.ContextFrame.SegFs   &  (~RPL_MAX_MASK));
 
 	//GS
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegGs, &uBase, &uLimit, &uAccess);
-	Status |= Frog_Vmx_Write(GUEST_GS_SELECTOR, HostState.ContextFrame.SegGs);
+	Status |= Frog_Vmx_Write(GUEST_GS_SELECTOR, HostState.ContextFrame.SegGs );
 	Status |= Frog_Vmx_Write(GUEST_GS_LIMIT, uLimit);
 	Status |= Frog_Vmx_Write(GUEST_GS_BASE, uBase);
 	Status |= Frog_Vmx_Write(GUEST_GS_AR_BYTES, uAccess);
 
 	Status |= Frog_Vmx_Write(HOST_GS_BASE, uBase);
-	Status |= Frog_Vmx_Write(HOST_GS_SELECTOR, HostState.ContextFrame.SegGs);
+	Status |= Frog_Vmx_Write(HOST_GS_SELECTOR, HostState.ContextFrame.SegGs  &  (~RPL_MAX_MASK));
 
 	//LDTR
 	Frog_GetSelectInfo(pGdtr, HostState.SpecialRegisters.Ldtr, &uBase, &uLimit, &uAccess);
@@ -345,7 +348,7 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	Status |= Frog_Vmx_Write(GUEST_TR_AR_BYTES, uAccess);
 
 	Status |= Frog_Vmx_Write(HOST_TR_BASE, uBase);
-	Status |= Frog_Vmx_Write(HOST_TR_SELECTOR, HostState.SpecialRegisters.Tr);
+	Status |= Frog_Vmx_Write(HOST_TR_SELECTOR, HostState.SpecialRegisters.Tr   &  (~RPL_MAX_MASK));
 
 
 

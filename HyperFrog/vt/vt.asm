@@ -5,7 +5,7 @@ extern vmexit_handle:proc
 
 
 VmxEntryPointer	Proc
-
+ int 3
  push r15
  mov r15,rsp
  add rsp,8

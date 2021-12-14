@@ -28,7 +28,7 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
 
 	//处理器的扩展控制域
-	VmSecondaryProcessorBasedControls.fields.enable_rdtscp = TRUE;
+	//VmSecondaryProcessorBasedControls.fields.enable_rdtscp = TRUE;
 	VmSecondaryProcessorBasedControls.fields.enable_invpcid = TRUE;
 	VmSecondaryProcessorBasedControls.fields.enable_xsaves_xstors = TRUE;
 	VmSecondaryProcessorBasedControls.all = Frog_VmxAdjustControlValue(kIa32VmxProcBasedCtls2, VmSecondaryProcessorBasedControls.all);
@@ -48,8 +48,22 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	Status |= Frog_Vmx_Write(VM_ENTRY_CONTROLS, VmVmentryControls.all);
 	Status |= Frog_Vmx_Write(VM_EXIT_CONTROLS, VmExitControls.all);
 
-	Status |= Frog_Vmx_Write(IO_BITMAP_A, (ULONG64)pForgVmxEntry->VmxBitMapArea.BitMapA);
-	Status |= Frog_Vmx_Write(IO_BITMAP_B, (ULONG64)pForgVmxEntry->VmxBitMapArea.BitMapB);
+   //PULONG  bitMapReadLow =  pForgVmxEntry->VmxBitMapArea.BitMapA;
+   //PULONG  bitMapReadHight = pForgVmxEntry->VmxBitMapArea.BitMapB;
+   //RTL_BITMAP bitMapReadLowHeader = { 0 };
+   //RTL_BITMAP bitMapReadHighHeader = { 0 };
+   //RtlInitializeBitMap(&bitMapReadLowHeader, (PULONG)bitMapReadLow, 1024 * 8);
+   //RtlInitializeBitMap(&bitMapReadHighHeader, (PULONG)bitMapReadHight, 1024 * 8);
+   //
+   //RtlSetBit(&bitMapReadLowHeader, MSR_IA32_FEATURE_CONTROL);    // MSR_IA32_FEATURE_CONTROL
+   //RtlSetBit(&bitMapReadLowHeader, MSR_IA32_DEBUGCTL);          // MSR_DEBUGCTL
+   //RtlSetBit(&bitMapReadHighHeader, MSR_LSTAR - 0xC0000000);     // MSR_LSTAR
+   //for (ULONG i = MSR_IA32_VMX_BASIC; i <= MSR_IA32_VMX_VMFUNC; i++)
+   //    RtlSetBit(&bitMapReadLowHeader, i);
+
+    Status |= Frog_Vmx_Write(MSR_BITMAP, MmGetPhysicalAddress(pForgVmxEntry->VmxBitMapArea.BitMap).QuadPart);
+    //Status |= Frog_Vmx_Write(IO_BITMAP_A, (ULONG64)pForgVmxEntry->VmxBitMapArea.BitMapA);
+    //Status |= Frog_Vmx_Write(IO_BITMAP_B, (ULONG64)pForgVmxEntry->VmxBitMapArea.BitMapB);
 
 	//Segment
 	Status|=Frog_FullVmxSelector(HostState);
@@ -81,6 +95,7 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	Status|=Frog_Vmx_Write(CR4_READ_SHADOW, HostState.SpecialRegisters.Cr4);
 
 	//DR7
+    Status |= Frog_Vmx_Write(GUEST_IA32_DEBUGCTL, HostState.SpecialRegisters.DebugControl);
 	Status|=Frog_Vmx_Write(GUEST_DR7, HostState.SpecialRegisters.KernelDr7);
 
 	//GUEST RSP RIP RFLAGS
@@ -88,13 +103,12 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	Status|=Frog_Vmx_Write(GUEST_RIP, HostState.ContextFrame.Rip);
 	Status|=Frog_Vmx_Write(GUEST_RFLAGS, HostState.ContextFrame.EFlags);
 
-
 	//HOST RIP RSP
-	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG_PTR)pForgVmxEntry->VmxHostStackArea + HostStackSize - sizeof(CONTEXT));
-	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG_PTR)VmxEntryPointer);
-	Status |= Frog_Vmx_Write(GUEST_IA32_DEBUGCTL, (ULONG_PTR)__readmsr(kIa32Debugctl));
-	Status |= Frog_Vmx_Write(GUEST_EFER, (ULONG_PTR)__readmsr(kIa32Efer));
-	Status |= Frog_Vmx_Write(HOST_EFER, (ULONG_PTR)__readmsr(kIa32Efer));
+	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG64)pForgVmxEntry->VmxHostStackArea + HostStackSize);
+	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
+
+	//Status |= Frog_Vmx_Write(GUEST_EFER, (ULONG64)__readmsr(kIa32Efer));
+	//Status |= Frog_Vmx_Write(HOST_EFER, (ULONG64)__readmsr(kIa32Efer));
 
 
 	
