@@ -3,10 +3,12 @@ extern vmexit_handle:proc
 
 .CODE
 
+
 VmxEntryPointer	Proc
- int 3
- push rsp
+
  push r15
+ mov r15,rsp
+ add rsp,8
  push r14
  push r13
  push r12
@@ -17,6 +19,7 @@ VmxEntryPointer	Proc
  push rdi
  push rsi
  push rbp
+ push r15;rsp
  push rbx
  push rdx
  push rcx
@@ -28,6 +31,7 @@ VmxEntryPointer	Proc
  pop rcx
  pop rdx
  pop rbx
+ add rsp, 8
  pop rbp
  pop rsi
  pop rdi
@@ -39,7 +43,7 @@ VmxEntryPointer	Proc
  pop r13
  pop r14
  pop r15
- add rsp,8
+ 
 
 VmxEntryPointer Endp
 END

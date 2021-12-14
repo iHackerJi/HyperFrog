@@ -12,7 +12,7 @@ void			vmexit_readmsr_handle(pFrog_GuestContext	Context)
 	Context->Rdx = HIDWORD(MsrValue);
 
 }
-void			vmexit_cpuid_handle(pFrog_GuestContext	Context)
+void			vmexit_cpuid_handle(pFrog_GuestContext	    Context)
 {
 	int		CpuidInfo[4] = { 0 };
 	__cpuidex(CpuidInfo, (int)Context->Rax,(int)Context->Rcx);
@@ -22,6 +22,40 @@ void			vmexit_cpuid_handle(pFrog_GuestContext	Context)
 	Context->Rdx = (ULONG64)CpuidInfo[3];
 
 	return;
+}
+void         vmexit_craccess_handle(pFrog_GuestContext	Context)
+{
+    CrxVmExitQualification          CrxQualification = { 0 };
+    PULONG64                            RegContext = (PULONG64)Context;
+    ULONG64                             Register = 0;
+
+    CrxQualification.all = Frog_Vmx_Read(EXIT_QUALIFICATION);
+    Register = RegContext[CrxQualification.Bits.gp_register];
+
+    if (CrxQualification.Bits.access_type == kMoveToCr)
+    {
+        switch (CrxQualification.Bits.crn)
+        {
+        case 0:
+            {
+                Frog_Vmx_Write(GUEST_CR0, Register);
+                break;
+            }
+        case 3:
+        {
+            Frog_Vmx_Write(GUEST_CR3, Register);
+            break;
+        }
+        case 4:
+            {
+                Frog_Vmx_Write(GUEST_CR4, Register);
+                break;
+            } 
+        }
+
+    }
+
+
 }
 
 EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
@@ -54,6 +88,9 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 		case ExitMsrRead:
 			vmexit_readmsr_handle(Context);
 			break;
+        case ExitCrAccess:
+            vmexit_craccess_handle(Context);
+            break;
 		case ExitInvept:
 		case ExitInvvpid:
 		case ExitVmcall:

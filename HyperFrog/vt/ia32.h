@@ -8,6 +8,9 @@
 
 //-------------Enum
 
+
+
+
 typedef		enum _CpuidIndex
 {
 	EnumEAX,
@@ -214,7 +217,12 @@ enum
 	HOST_RIP = 0x00006c16,
 };
 
-
+enum MovCrAccessType {
+    kMoveToCr = 0, // MOV crx, reg
+    KMobeFromCr,   // MOV reg, crx
+    kClts,
+    kLmsw
+};
 
 
 //------------------------------
@@ -222,6 +230,22 @@ enum
 
 //union----------------------------------
 
+
+typedef union _CrxVmExitQualification
+{
+    ULONG_PTR all;
+    struct
+    {
+        ULONG_PTR crn : 4;				  //!< [0:3]	记录访问的控制寄存器
+        ULONG_PTR access_type : 2;		  //!< [4:5]	访问类型 (MovCrAccessType)
+        ULONG_PTR lmsw_operand_type : 1;  //!< [6]		LMSW指令的操作数类型
+        ULONG_PTR reserved1 : 1;          //!< [7]		
+        ULONG_PTR gp_register : 4;        //!< [8:11]	记录使用的通用寄存器
+        ULONG_PTR reserved2 : 4;          //!< [12:15]	
+        ULONG_PTR lmsw_source_data : 16;  //!< [16:31]	LMSW指令的源操作数
+        ULONG_PTR reserved3 : 32;         //!< [32:63]
+    }Bits;
+}CrxVmExitQualification, *pCrxVmExitQualification;
 
 
 typedef union _Ia32VmxBasicMsr {
