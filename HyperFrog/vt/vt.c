@@ -87,7 +87,7 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	//CR3
 	Status|= Frog_Vmx_Write(GUEST_CR3, HostState.SpecialRegisters.Cr3);
 	//因为使用了KeGenericCallDpc函数进行多核同步操作，这个函数会把我们的例程通过DPC投放到别的进程里面，可能CR3会被改变，所以CR3在之前需要保存
-	Status|= Frog_Vmx_Write(HOST_CR3, pForgVmxEntry->HostCr3);
+	Status|= Frog_Vmx_Write(HOST_CR3, Frog_Cpu->KernelCr3);
 
 	//CR4
 	Status|=Frog_Vmx_Write(GUEST_CR4, HostState.SpecialRegisters.Cr4);
@@ -115,7 +115,7 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 
 
 
-VOID	Frog_HyperInit(
+VOID	Frog_DpcRunHyper(
 	_In_ struct _KDPC *Dpc,
 	_In_opt_ PVOID DeferredContext,
 	_In_opt_ PVOID SystemArgument1,
@@ -134,7 +134,6 @@ VOID	Frog_HyperInit(
 	//保存HOST机上下文
 	KeSaveStateForHibernate(&pForgVmxEntry->HostState);
 	RtlCaptureContext(&pForgVmxEntry->HostState.ContextFrame);
-	pForgVmxEntry->HostCr3 = (ULONG64)DeferredContext;
 
 	//申请VMCS、VMXON、等等区域
 	Status = Frog_AllocateHyperRegion(pForgVmxEntry, CpuNumber);
@@ -219,9 +218,9 @@ FrogRetCode 	Frog_EnableHyper()
 
 	//设置MSR的位以支持虚拟化
 	Frog_SetMsrBitToEnableHyper();
-	KeGenericCallDpc(Frog_HyperInit, (PVOID)__readcr3());
 
-
+    Frog_Cpu->KernelCr3 = __readcr3();//DPC递投的方式会导致进入到不同的进程环境中，所以需要保存内核的CR3
+	KeGenericCallDpc(Frog_DpcRunHyper, NULL);
 
 	return	FrogSuccess;
 

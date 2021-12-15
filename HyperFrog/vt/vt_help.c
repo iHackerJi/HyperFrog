@@ -324,6 +324,7 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 
 	//GS
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegGs, &uBase, &uLimit, &uAccess);
+    uBase = HostState.SpecialRegisters.MsrGsBase;//这里是个坑，我们使用了递投DPC的方式去开启VT，那么GS_BASE对应的是TEB，所以我们需要用之前保存的GS_BASE
 	Status |= Frog_Vmx_Write(GUEST_GS_SELECTOR, HostState.ContextFrame.SegGs );
 	Status |= Frog_Vmx_Write(GUEST_GS_LIMIT, uLimit);
 	Status |= Frog_Vmx_Write(GUEST_GS_BASE, uBase);
@@ -339,7 +340,6 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	Status |= Frog_Vmx_Write(GUEST_LDTR_BASE, uBase);
 	Status |= Frog_Vmx_Write(GUEST_LDTR_AR_BYTES, uAccess);
 
-
 	//TR
 	Frog_GetSelectInfo(pGdtr, HostState.SpecialRegisters.Tr, &uBase, &uLimit, &uAccess);
 	Status |= Frog_Vmx_Write(GUEST_TR_SELECTOR, HostState.SpecialRegisters.Tr);
@@ -350,9 +350,5 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	Status |= Frog_Vmx_Write(HOST_TR_BASE, uBase);
 	Status |= Frog_Vmx_Write(HOST_TR_SELECTOR, HostState.SpecialRegisters.Tr   &  (~RPL_MAX_MASK));
 
-
-
-
 	return Status;
-
 }

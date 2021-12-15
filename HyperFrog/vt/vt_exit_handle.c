@@ -60,14 +60,10 @@ void         vmexit_craccess_handle(pFrog_GuestContext	Context)
 
 EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 {
-	KIRQL				Irql = 0;
 	VmxExitInfo		ExitInfo = { 0 };
 	ULONG64		Rip = 0;
 	ULONG64		Rsp = 0;
 	ULONG64		ExitinstructionsLength = 0;
-
-	Irql = KeGetCurrentIrql();
-	if (Irql < DISPATCH_LEVEL) Irql = KeRaiseIrqlToDpcLevel();
 
     Frog_PrintfEx("Hello");
 
@@ -111,15 +107,11 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 
 	}
 
+    //正常处理流程
 	Rip =	Frog_Vmx_Read(GUEST_RIP);
 	Rsp =   Frog_Vmx_Read(GUEST_RSP);
 	ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
-
 	Rip += ExitinstructionsLength;
-
 	Frog_Vmx_Write(GUEST_RIP, Rip);
 	Frog_Vmx_Write(GUEST_RSP, Rsp);
-
-	KeLowerIrql(Irql);
-
 }

@@ -25,7 +25,6 @@ typedef struct _FrogVmx {
 	BOOLEAN			OrigCr4BitVmxeIsSet;
 	
 	KPROCESSOR_STATE		HostState;
-	ULONG64						HostCr3;
 
 	pVmControlStructure		VmxOnArea;
 	pVmControlStructure		VmxVmcsArea;
@@ -46,6 +45,8 @@ typedef struct _FrogCpu {
 	ULONG							ProcessOrNumber;
 	Ia32FeatureControlMsr	OrigFeatureControlMsr;
 	pFrogVmx						pForgVmxEntrys;
+    ULONG64						KernelCr3;
+    ULONG64                        KernelGsBase;
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {

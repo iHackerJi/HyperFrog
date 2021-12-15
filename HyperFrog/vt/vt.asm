@@ -5,6 +5,8 @@ extern vmexit_handle:proc
 
 
 VmxEntryPointer	Proc
+	cli
+
  int 3
  push r15
  mov r15,rsp
@@ -25,8 +27,11 @@ VmxEntryPointer	Proc
  push rcx
  push rax
  
- jmp		vmexit_handle
- 
+ mov rcx,rsp
+ sub   rsp,0100h			; 开辟缓冲空间
+ call		vmexit_handle
+ add   rsp,0100h			; 开辟缓冲空间
+
  pop rax
  pop rcx
  pop rdx
@@ -43,7 +48,8 @@ VmxEntryPointer	Proc
  pop r13
  pop r14
  pop r15
- 
-
+ sti
+ vmresume;   返回到VM non-root(返回到Guest环境里继续执行)
+ ret
 VmxEntryPointer Endp
 END
