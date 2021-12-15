@@ -28,9 +28,9 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
 
 	//处理器的扩展控制域
-	//VmSecondaryProcessorBasedControls.fields.enable_rdtscp = TRUE;
-	VmSecondaryProcessorBasedControls.fields.enable_invpcid = TRUE;
-	VmSecondaryProcessorBasedControls.fields.enable_xsaves_xstors = TRUE;
+    //VmSecondaryProcessorBasedControls.fields.enable_rdtscp = TRUE;
+    //VmSecondaryProcessorBasedControls.fields.enable_invpcid = TRUE;
+    //VmSecondaryProcessorBasedControls.fields.enable_xsaves_xstors = TRUE;
 	VmSecondaryProcessorBasedControls.all = Frog_VmxAdjustControlValue(kIa32VmxProcBasedCtls2, VmSecondaryProcessorBasedControls.all);
 
 	//Vm-Entry控制域
@@ -110,8 +110,6 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	//Status |= Frog_Vmx_Write(GUEST_EFER, (ULONG64)__readmsr(kIa32Efer));
 	//Status |= Frog_Vmx_Write(HOST_EFER, (ULONG64)__readmsr(kIa32Efer));
 
-
-	
 	return Status;
 }
 
@@ -151,15 +149,19 @@ VOID	Frog_HyperInit(
 	Frog_SetHyperRegionVersion(pForgVmxEntry, CpuNumber);
 
 	//VMXON
-	if (__vmx_on((UINT64*)&pForgVmxEntry->VmxOnAreaPhysicalAddr))
-	{
-		FrogBreak();
-		FrogPrint("Vmxon	Error");
-		goto	_HyperInitExit;
-	}
+    __vmx_on((ULONG64*)&pForgVmxEntry->VmxOnAreaPhysicalAddr);
+    FlagReg elf = { 0 };
+    elf.all = __readeflags();
+    if (elf.fields.cf != 0)
+    {
+        FrogBreak();
+        FrogPrint("Vmxon	Error");
+        goto	_HyperInitExit;
+    }
+
 
 	//vmclear
-	if (__vmx_vmclear((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
+	if (__vmx_vmclear((ULONG64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
 	{
 		FrogBreak();
 		FrogPrint("ForgVmClear	Error");
@@ -167,7 +169,7 @@ VOID	Frog_HyperInit(
 	}
 
 	//vmptrld
-	if (__vmx_vmptrld((UINT64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
+	if (__vmx_vmptrld((ULONG64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
 	{
 		FrogBreak();
 		FrogPrint("ForgVmptrld	Error");

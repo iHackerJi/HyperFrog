@@ -69,6 +69,8 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 	Irql = KeGetCurrentIrql();
 	if (Irql < DISPATCH_LEVEL) Irql = KeRaiseIrqlToDpcLevel();
 
+    Frog_PrintfEx("Hello");
+
 	ExitInfo.all = 	(ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
 
 	switch (ExitInfo.fields.reason)

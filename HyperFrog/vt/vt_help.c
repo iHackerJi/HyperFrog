@@ -24,10 +24,8 @@ BOOLEAN		MSR_VMXisSupport()
 
 	Ia32FeatureControlMsr VmxFeatureControl;
 	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
-
 	if (VmxFeatureControl.fields.enable_vmxon)
 		return	TRUE;
-
 
 	return	FALSE;
 }
@@ -251,11 +249,13 @@ VOID		Frog_GetSelectInfo(
 		*pAccess = 0x10000;	// unusable
 		return;
 	}
-
-	pGdtEntry = (PKGDTENTRY64)((ULONG64)pGdtr->Base + Segment.Index);
+    
+        //Segment.Index
+	pGdtEntry = (PKGDTENTRY64)((ULONG64)pGdtr->Base + (Select & ~RPL_MAX_MASK) );
     *pLimit = __segmentlimit((ULONG32)Select);
 	*pBase = ((pGdtEntry->Bytes.BaseHigh << 24) | (pGdtEntry->Bytes.BaseMiddle << 16) | (pGdtEntry->BaseLow)) & 0xFFFFFFFF;
-  //  *pBase |= ((pGdtEntry->Bits.Type & 0x10) == 0) ? ((uintptr_t)pGdtEntry->BaseUpper << 32) : 0;
+    *pBase |= ((pGdtEntry->Bits.Type & 0x10) == 0) ? ((uintptr_t)pGdtEntry->BaseUpper << 32) : 0;
+
 	*pAccess = (pGdtEntry->Bytes.Flags1) | (pGdtEntry->Bytes.Flags2 << 8);
 	*pAccess |= (pGdtEntry->Bits.Present) ? 0 : 0x10000;	//判断在不在内存，即P位
 }

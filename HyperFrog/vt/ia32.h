@@ -257,6 +257,36 @@ enum MovCrAccessType {
 //union----------------------------------
 
 
+
+typedef union _FlagReg {
+    ULONG_PTR all;
+    struct {
+        ULONG_PTR cf : 1;          //!< [0] Carry flag
+        ULONG_PTR reserved1 : 1;   //!< [1] Always 1
+        ULONG_PTR pf : 1;          //!< [2] Parity flag
+        ULONG_PTR reserved2 : 1;   //!< [3] Always 0
+        ULONG_PTR af : 1;          //!< [4] Borrow flag
+        ULONG_PTR reserved3 : 1;   //!< [5] Always 0
+        ULONG_PTR zf : 1;          //!< [6] Zero flag
+        ULONG_PTR sf : 1;          //!< [7] Sign flag
+        ULONG_PTR tf : 1;          //!< [8] Trap flag
+        ULONG_PTR intf : 1;        //!< [9] Interrupt flag
+        ULONG_PTR df : 1;          //!< [10] Direction flag
+        ULONG_PTR of : 1;          //!< [11] Overflow flag
+        ULONG_PTR iopl : 2;        //!< [12:13] I/O privilege level
+        ULONG_PTR nt : 1;          //!< [14] Nested task flag
+        ULONG_PTR reserved4 : 1;   //!< [15] Always 0
+        ULONG_PTR rf : 1;          //!< [16] Resume flag
+        ULONG_PTR vm : 1;          //!< [17] Virtual 8086 mode
+        ULONG_PTR ac : 1;          //!< [18] Alignment check
+        ULONG_PTR vif : 1;         //!< [19] Virtual interrupt flag
+        ULONG_PTR vip : 1;         //!< [20] Virtual interrupt pending
+        ULONG_PTR id : 1;          //!< [21] Identification flag
+        ULONG_PTR reserved5 : 10;  //!< [22:31] Always 0
+    } fields;
+}FlagReg, *pFlagReg;
+
+
 typedef union _CrxVmExitQualification
 {
     ULONG_PTR all;
@@ -546,45 +576,45 @@ typedef union _SEGMENT_SELECTOR
 
 typedef union _KGDTENTRY64
 {
-	struct
-	{
-		USHORT LimitLow;
-		USHORT BaseLow;
-		union
-		{
-			struct
-			{
-				UCHAR BaseMiddle;
-				UCHAR Flags1;
-				UCHAR Flags2;
-				UCHAR BaseHigh;
-			} Bytes;
+    struct
+    {
+        USHORT LimitLow;
+        USHORT BaseLow;
+        union
+        {
+            struct
+            {
+                UCHAR BaseMiddle;
+                UCHAR Flags1;
+                UCHAR Flags2;
+                UCHAR BaseHigh;
+            } Bytes;
 
-			struct
-			{
-				ULONG BaseMiddle : 8;
-				ULONG Type : 5;
-				ULONG Dpl : 2;
-				ULONG Present : 1;
-				ULONG LimitHigh : 4;
-				ULONG System : 1;
-				ULONG LongMode : 1;
-				ULONG DefaultBig : 1;
-				ULONG Granularity : 1;
-				ULONG BaseHigh : 8;
-			} Bits;
-		};
+            struct
+            {
+                ULONG BaseMiddle : 8;
+                ULONG Type : 5;
+                ULONG Dpl : 2;
+                ULONG Present : 1;
+                ULONG LimitHigh : 4;
+                ULONG System : 1;
+                ULONG LongMode : 1;
+                ULONG DefaultBig : 1;
+                ULONG Granularity : 1;
+                ULONG BaseHigh : 8;
+            } Bits;
+        };
 
-		ULONG BaseUpper;
-		ULONG MustBeZero;
-	};
+        ULONG BaseUpper;
+        ULONG MustBeZero;
+    };
 
-	struct
-	{
-		LONG64 DataLow;
-		LONG64 DataHigh;
-	};
-	
+    struct
+    {
+        LONG64 DataLow;
+        LONG64 DataHigh;
+    };
+
 } KGDTENTRY64, *PKGDTENTRY64;
 
 
