@@ -91,7 +91,7 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 
 	pForgVmxEntry->VmxOnArea = FrogExAllocatePool(PAGE_SIZE);
 	pForgVmxEntry->VmxVmcsArea = FrogExAllocatePool(PAGE_SIZE);
-	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE );
+	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE *2);
 	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize);
 
 	if (
@@ -102,8 +102,8 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 		)	goto __Exit;
 
 
-	//pForgVmxEntry->VmxBitMapArea.BitMapA = pForgVmxEntry->VmxBitMapArea.BitMap;
-	//pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG64)pForgVmxEntry->VmxBitMapArea.BitMap + PAGE_SIZE);
+    pForgVmxEntry->VmxBitMapArea.BitMapA = pForgVmxEntry->VmxBitMapArea.BitMap;
+    pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG64)pForgVmxEntry->VmxBitMapArea.BitMap + PAGE_SIZE);
 
 	pForgVmxEntry->VmxOnAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxOnArea);
 	pForgVmxEntry->VmxVmcsAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxVmcsArea);
@@ -133,7 +133,7 @@ void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 
 FrogRetCode	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue) 
 {
-	UCHAR	State = 0;
+	UCHAR	 State = 0;
 	State = __vmx_vmwrite(Field, FieldValue);
 	if (State)
 	{
@@ -267,18 +267,6 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	PKDESCRIPTOR		pGdtr = &HostState.SpecialRegisters.Gdtr;
 	ULONG64				uBase, uLimit, uAccess;
 
-	//ULONG_PTR link_pointer = 0xFFFFFFFFFFFFFFFFL;
-	//Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, link_pointer);
-
-	//HostState.ContextFrame.SegEs = HostState.ContextFrame.SegEs & 0xf8;
-	//HostState.ContextFrame.SegCs = HostState.ContextFrame.SegCs & 0xf8;
-	//HostState.ContextFrame.SegDs = HostState.ContextFrame.SegDs & 0xf8;
-	//HostState.ContextFrame.SegSs = HostState.ContextFrame.SegSs & 0xf8;
-	//HostState.ContextFrame.SegFs = HostState.ContextFrame.SegFs & 0xf8;
-	//HostState.ContextFrame.SegGs = HostState.ContextFrame.SegGs & 0xf8;
-    //HostState.SpecialRegisters.Ldtr = HostState.SpecialRegisters.Ldtr & 0xf8;
-    //HostState.SpecialRegisters.Tr = HostState.SpecialRegisters.Tr & 0xf8;
-
 	//	GUEST
 	//ES
 	Frog_GetSelectInfo(pGdtr, HostState.ContextFrame.SegEs, &uBase, &uLimit, &uAccess);
@@ -346,7 +334,6 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	Status |= Frog_Vmx_Write(GUEST_TR_LIMIT, uLimit);
 	Status |= Frog_Vmx_Write(GUEST_TR_BASE, uBase);
 	Status |= Frog_Vmx_Write(GUEST_TR_AR_BYTES, uAccess);
-
 	Status |= Frog_Vmx_Write(HOST_TR_BASE, uBase);
 	Status |= Frog_Vmx_Write(HOST_TR_SELECTOR, HostState.SpecialRegisters.Tr   &  (~RPL_MAX_MASK));
 

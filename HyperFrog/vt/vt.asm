@@ -49,6 +49,7 @@ VmxEntryPointer	Proc
  pop r14
  pop r15
  sti
+
  vmresume;   返回到VM non-root(返回到Guest环境里继续执行)
  ret
 VmxEntryPointer Endp

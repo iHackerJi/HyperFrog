@@ -65,10 +65,9 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 	ULONG64		Rsp = 0;
 	ULONG64		ExitinstructionsLength = 0;
 
-    Frog_PrintfEx("Hello");
-
+   
 	ExitInfo.all = 	(ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
-
+    Frog_PrintfEx("Helo,World reason=%d", ExitInfo.fields.reason);
 	switch (ExitInfo.fields.reason)
 	{
 		case	ExitCpuid:
