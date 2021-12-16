@@ -28,9 +28,9 @@ VmxEntryPointer	Proc
  push rax
  
  mov rcx,rsp
- sub   rsp,0100h			; ¿ª±Ù»º³å¿Õ¼ä
+ sub   rsp,0100h
  call		vmexit_handle
- add   rsp,0100h			; ¿ª±Ù»º³å¿Õ¼ä
+ add   rsp,0100h
 
  pop rax
  pop rcx

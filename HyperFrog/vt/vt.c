@@ -157,7 +157,6 @@ VOID	Frog_DpcRunHyper(
         goto	_HyperInitExit;
     }
 
-
 	//vmclear
 	if (__vmx_vmclear((ULONG64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
 	{
@@ -240,7 +239,6 @@ void					Frog_HyperUnLoad(ULONG	CurrentProcessor)
 		_bittestandreset64(&cr4, ia32_cr4_vmxe);
 		__writecr4(cr4);
 	}
-
 
 	Frog_FreeHyperRegion(pForgVmxEntry);
 	if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);

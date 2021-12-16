@@ -64,7 +64,7 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 	ULONG64		Rip = 0;
 	ULONG64		Rsp = 0;
 	ULONG64		ExitinstructionsLength = 0;
-
+    FlagReg           GuestRflag = { 0 };
    
 	ExitInfo.all = 	(ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
     Frog_PrintfEx("Helo,World reason=%d", ExitInfo.fields.reason);
@@ -100,6 +100,11 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 		case  ExitVmwrite:
 		case  ExitVmoff:
 		case  ExitVmon:
+        {
+            GuestRflag.all = Frog_Vmx_Read(GUEST_RFLAGS);
+            GuestRflag.fields.cf = 1;//¾Ü¾øÇ¶Ì×
+            Frog_Vmx_Write(GUEST_RFLAGS, GuestRflag.all);
+        }
 			break;
 		default:
 			break;
