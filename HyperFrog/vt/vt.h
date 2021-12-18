@@ -23,6 +23,7 @@ typedef struct _VmxIoBitMap {
 
 typedef struct _FrogVmx {
 	BOOLEAN			OrigCr4BitVmxeIsSet;
+    BOOLEAN             VmxIsEnable;
 	
 	KPROCESSOR_STATE		HostState;
 
@@ -38,7 +39,6 @@ typedef struct _FrogVmx {
 	ULONG			ProcessorNumber;
 
 	pEptPointer EptPoniter;
-
 }FrogVmx, *pFrogVmx;
 
 typedef struct _FrogCpu {

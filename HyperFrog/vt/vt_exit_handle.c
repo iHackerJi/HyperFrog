@@ -67,7 +67,8 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
     FlagReg           GuestRflag = { 0 };
    
 	ExitInfo.all = 	(ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
-    Frog_PrintfEx("Helo,World reason=%d", ExitInfo.fields.reason);
+
+    FrogBreak();
 	switch (ExitInfo.fields.reason)
 	{
 		case	ExitCpuid:
@@ -116,6 +117,9 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 	Rsp =   Frog_Vmx_Read(GUEST_RSP);
 	ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
 	Rip += ExitinstructionsLength;
+
+    Frog_PrintfEx("reason=%d rip=%p", ExitInfo.fields.reason,Rip);
 	Frog_Vmx_Write(GUEST_RIP, Rip);
 	Frog_Vmx_Write(GUEST_RSP, Rsp);
+    return;
 }

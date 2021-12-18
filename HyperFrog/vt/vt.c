@@ -3,9 +3,9 @@
 
 pFrogCpu		Frog_Cpu = NULL;
 
-FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) 
+FrogRetCode
+Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) 
 {
-
 	ULONG														UseTrueMsrs = 0;
 	FrogRetCode												Status = FrogSuccess;
 	Ia32VmxBasicMsr										VmxBasicMsr = { 0 };
@@ -15,8 +15,6 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	VmxVmentryControls									VmVmentryControls = { 0 };
 	VmxmexitControls										VmExitControls = { 0 };
 	KPROCESSOR_STATE									HostState = pForgVmxEntry->HostState;
-
-    Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, 0xFFFFFFFFFFFFFFFF);
 
 	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
 	UseTrueMsrs = (BOOLEAN)VmxBasicMsr.fields.vmx_capability_hint;
@@ -65,7 +63,6 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 
     Status |= Frog_Vmx_Write(MSR_BITMAP, MmGetPhysicalAddress(pForgVmxEntry->VmxBitMapArea.BitMap).QuadPart);
 
-
 	//Segment
 	Status|=Frog_FullVmxSelector(HostState);
 
@@ -108,10 +105,10 @@ FrogRetCode	Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG64)pForgVmxEntry->VmxHostStackArea + HostStackSize);
 	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
 
+    Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, 0xFFFFFFFFFFFFFFFF);
 
 	return Status;
 }
-
 
 
 VOID	Frog_DpcRunHyper(
@@ -120,9 +117,8 @@ VOID	Frog_DpcRunHyper(
 	_In_opt_ PVOID SystemArgument1,
 	_In_opt_ PVOID SystemArgument2
 ) {
-	FrogBreak();
 	//初始化VMX区域
-	FrogRetCode	Status;
+	FrogRetCode	Status = FrogSuccess;
 	ULONG			CpuNumber = KeGetCurrentProcessorNumber();
 	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CpuNumber];
 	size_t				VmxErrorCode = 0;
@@ -134,60 +130,61 @@ VOID	Frog_DpcRunHyper(
 	KeSaveStateForHibernate(&pForgVmxEntry->HostState);
 	RtlCaptureContext(&pForgVmxEntry->HostState.ContextFrame);
 
-	//申请VMCS、VMXON、等等区域
-	Status = Frog_AllocateHyperRegion(pForgVmxEntry, CpuNumber);
-	if (!Frog_SUCCESS(Status))
-	{
-		FrogBreak();
-		FrogPrint("AllocateHyperRegion	Error");
-		goto	_HyperInitExit;
-	}
-
-	//设置VMCS、VMXON版本号
-	Frog_SetHyperRegionVersion(pForgVmxEntry, CpuNumber);
-
-	//VMXON
-    __vmx_on((ULONG64*)&pForgVmxEntry->VmxOnAreaPhysicalAddr);
-    FlagReg elf = { 0 };
-    elf.all = __readeflags();
-    if (elf.fields.cf != 0)
+    //这个地方存储了环境，也就说明RIP也会被保存进去，我们GUEST_RIP填的也是这个，所以这个地方会被进来两次，我们需要判断一下VMX是否开启了
+    if (pForgVmxEntry->VmxIsEnable == FALSE)
     {
-        FrogBreak();
-        FrogPrint("Vmxon	Error");
-        goto	_HyperInitExit;
+        //申请VMCS、VMXON、等等区域
+        Status = Frog_AllocateHyperRegion(pForgVmxEntry, CpuNumber);
+        if (!Frog_SUCCESS(Status))
+        {
+            FrogBreak();
+            FrogPrint("AllocateHyperRegion	Error");
+            goto	_HyperInitExit;
+        }
+
+        //设置VMCS、VMXON版本号
+        Frog_SetHyperRegionVersion(pForgVmxEntry, CpuNumber);
+
+        //VMXON
+        if (__vmx_on(&pForgVmxEntry->VmxOnAreaPhysicalAddr.QuadPart))
+        {
+            FrogBreak();
+            FrogPrint("Vmxon	Error");
+            goto	_HyperInitExit;
+        }
+
+        //vmclear
+        if (__vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr.QuadPart))
+        {
+            FrogBreak();
+            FrogPrint("ForgVmClear	Error");
+            goto _HyperInitExit;
+        }
+
+        //vmptrld
+        if (__vmx_vmptrld(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr.QuadPart))
+        {
+            FrogBreak();
+            FrogPrint("ForgVmptrld	Error");
+            goto _HyperInitExit;
+        }
+
+        //VMCS
+        Status = Frog_SetupVmcs(pForgVmxEntry);
+        if (!Frog_SUCCESS(Status)) {
+            FrogBreak();
+            FrogPrint("Frog_SetupVmcs	Error");
+            goto	_HyperInitExit;
+        }
+
+        pForgVmxEntry->VmxIsEnable = TRUE;
+        if (__vmx_vmlaunch())
+        {
+            VmxErrorCode = Frog_Vmx_Read(VM_INSTRUCTION_ERROR);
+            FrogPrint("VmLaunch	Error = %d", VmxErrorCode);
+            FrogBreak();
+        }
     }
-
-	//vmclear
-	if (__vmx_vmclear((ULONG64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
-	{
-		FrogBreak();
-		FrogPrint("ForgVmClear	Error");
-		goto _HyperInitExit;
-	}
-
-	//vmptrld
-	if (__vmx_vmptrld((ULONG64*)&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
-	{
-		FrogBreak();
-		FrogPrint("ForgVmptrld	Error");
-		goto _HyperInitExit;
-	}
-
-	//VMCS
-	Status = Frog_SetupVmcs(pForgVmxEntry);
-	if (!Frog_SUCCESS(Status)) {
-		FrogBreak();
-		FrogPrint("Frog_SetupVmcs	Error");
-		goto	_HyperInitExit;
-	}
-
-	__vmx_vmlaunch();
-
-	VmxErrorCode = Frog_Vmx_Read(VM_INSTRUCTION_ERROR);
-
-	FrogPrint("VmLaunch	Error = %d", VmxErrorCode);
-	FrogBreak();
-
 _HyperInitExit:
 
 	KeSignalCallDpcSynchronize(SystemArgument2);
@@ -218,6 +215,7 @@ FrogRetCode 	Frog_EnableHyper()
 	Frog_SetMsrBitToEnableHyper();
 
     Frog_Cpu->KernelCr3 = __readcr3();//DPC递投的方式会导致进入到不同的进程环境中，所以需要保存内核的CR3
+  
 	KeGenericCallDpc(Frog_DpcRunHyper, NULL);
 
 	return	FrogSuccess;
