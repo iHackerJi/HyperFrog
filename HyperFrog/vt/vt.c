@@ -226,57 +226,53 @@ FrogRetCode 	Frog_EnableHyper()
 
 //--------------------------------------Unload
 
-void					Frog_HyperUnLoad(ULONG	CurrentProcessor) 
+VOID	Frog_DpcRunHyper(
+    _In_ struct _KDPC *Dpc,
+    _In_opt_ PVOID DeferredContext,
+    _In_opt_ PVOID SystemArgument1,
+    _In_opt_ PVOID SystemArgument2
+)
 {
-	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
 
-	if (!pForgVmxEntry->OrigCr4BitVmxeIsSet)
-	{
-		#define ia32_cr4_vmxe			13
-		ULONG64 cr4 = __readcr4();
-		_bittestandreset64(&cr4, ia32_cr4_vmxe);
-		__writecr4(cr4);
-	}
 
-	Frog_FreeHyperRegion(pForgVmxEntry);
+    KeSignalCallDpcSynchronize(SystemArgument2);
+    KeSignalCallDpcDone(SystemArgument1);
+    
+}
+
+void					Frog_HyperUnLoad() 
+{
+    ULONG	        CurrentProcessor = 0;
+    pFrogVmx		pForgVmxEntry = NULL;
+    CpuId               Data = { 0 };
+
+    CurrentProcessor = KeGetCurrentProcessorNumber();
+    pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
+
+    if (Frog_VmCall(FrogExitTag, 0, 0, 0, 0))
+    {
+        if (!pForgVmxEntry->OrigCr4BitVmxeIsSet)
+        {
+            #define ia32_cr4_vmxe			13
+            ULONG64 cr4 = __readcr4();
+            _bittestandreset64(&cr4, ia32_cr4_vmxe);
+            __writecr4(cr4);
+        }
+
+        Frog_FreeHyperRegion(pForgVmxEntry);
+
+    }
 	if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
 
 }
 
 FrogRetCode	Frog_DisableHyper() 
 {
-	ULONG	ProcessorNumber = Frog_Cpu->ProcessOrNumber;
 
-	for (ULONG i = 0; i < ProcessorNumber; i++)
-	{
+    KeGenericCallDpc(Frog_HyperUnLoad, NULL);
 
-		NTSTATUS	Status;
-		PROCESSOR_NUMBER processor_number = { 0 };
-
-		Status = KeGetProcessorNumberFromIndex(i, &processor_number);
-		if (!NT_SUCCESS(Status))
-		{
-			FrogBreak();
-			FrogPrint("KeGetProcessorNumberFromIndex Error");
-			return	FrogUnloadError;
-		}
-
-		GROUP_AFFINITY	Affinity = { 0 };
-		GROUP_AFFINITY	oldAffinity = { 0 };
-		Affinity.Group = processor_number.Group;
-		Affinity.Mask = 1ull << processor_number.Number;
-
-		KeSetSystemGroupAffinityThread(&Affinity, &oldAffinity);
-
-		__vmx_off(); // 关闭 CPU 的 VMX 模式
-		Frog_HyperUnLoad(i);
-
-		KeRevertToUserGroupAffinityThread(&oldAffinity);
-
-	}
 	__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all);
 	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
-
 
 	return	FrogSuccess;
 }

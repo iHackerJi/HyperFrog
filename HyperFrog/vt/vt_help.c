@@ -329,3 +329,17 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 
 	return Status;
 }
+
+BOOLEAN     Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9)
+{
+    CpuId Data = { 0 };
+
+    __cpuid((int*)&Data, FrogTag);
+    if (Data.eax != FrogTag) {
+        return FALSE;
+    }
+
+    Asm_VmxCall(Rcx, Rdx, R8, R9);
+
+    return TRUE;
+}

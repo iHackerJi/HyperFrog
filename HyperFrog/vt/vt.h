@@ -5,8 +5,8 @@
 #include "../ExportFunction.h"
 #include "vt_asm.h"
 
-
 #define		FrogTag	'Frog'
+#define        FrogExitTag  'Exit'
 #define		HostStackSize PAGE_SIZE * 6
 #define		Frog_SUCCESS(Status) (((FrogRetCode)(Status)) >= 0)
 #define		FrogExFreePool(mem) 	ExFreePoolWithTag(mem, FrogTag)

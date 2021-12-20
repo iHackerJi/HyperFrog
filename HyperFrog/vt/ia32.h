@@ -805,3 +805,11 @@ typedef struct _VmControlStructure {
 	unsigned long vmx_abort_indicator;
 	unsigned long data[1];  //!< Implementation-specific format.
 }VmControlStructure, *pVmControlStructure;
+
+typedef struct _vCpuId
+{
+    ULONG32 eax;
+    ULONG32 ebx;
+    ULONG32 ecx;
+    ULONG32 edx;
+}CpuId, *pCpuId;
