@@ -10,7 +10,6 @@ void			vmexit_readmsr_handle(pFrog_GuestContext	Context)
 
 	Context->Rax = LODWORD(MsrValue);
 	Context->Rdx = HIDWORD(MsrValue);
-
 }
 void			vmexit_cpuid_handle(pFrog_GuestContext	    Context)
 {
@@ -84,7 +83,13 @@ void        vmexit_vmcall_handle(pFrog_GuestContext	Context)
             CurrentProcessor = KeGetCurrentProcessorNumber();
             pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
 
-            
+            //
+            __writecr3(Frog_Vmx_Read(GUEST_CR3));
+            __writemsr(kIa32FsBase, Frog_Vmx_Read(GUEST_FS_BASE));
+            __writemsr(kIa32GsBase, Frog_Vmx_Read(GUEST_GS_BASE));
+            _lgdt(&pForgVmxEntry->HostState.SpecialRegisters.Gdtr.Limit);
+            __lidt(&pForgVmxEntry->HostState.SpecialRegisters.Idtr.Limit);
+
 
             __vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr);
             __vmx_off();

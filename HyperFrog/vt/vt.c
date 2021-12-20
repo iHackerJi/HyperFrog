@@ -240,7 +240,7 @@ VOID	Frog_DpcRunHyper(
     
 }
 
-void					Frog_HyperUnLoad() 
+void					Frog_DpcDisableHyper() 
 {
     ULONG	        CurrentProcessor = 0;
     pFrogVmx		pForgVmxEntry = NULL;
@@ -268,8 +268,7 @@ void					Frog_HyperUnLoad()
 
 FrogRetCode	Frog_DisableHyper() 
 {
-
-    KeGenericCallDpc(Frog_HyperUnLoad, NULL);
+    KeGenericCallDpc(Frog_DpcDisableHyper, NULL);
 
 	__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all);
 	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
