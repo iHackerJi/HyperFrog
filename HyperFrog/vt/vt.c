@@ -131,7 +131,7 @@ VOID	Frog_DpcRunHyper(
 	RtlCaptureContext(&pForgVmxEntry->HostState.ContextFrame);
 
     //这个地方存储了环境，也就说明RIP也会被保存进去，我们GUEST_RIP填的也是这个，所以这个地方会被进来两次，我们需要判断一下VMX是否开启了
-    if (pForgVmxEntry->VmxIsEnable == FALSE)
+    if (pForgVmxEntry->HyperIsEnable == FALSE)
     {
         //申请VMCS、VMXON、等等区域
         Status = Frog_AllocateHyperRegion(pForgVmxEntry, CpuNumber);
@@ -146,7 +146,7 @@ VOID	Frog_DpcRunHyper(
         Frog_SetHyperRegionVersion(pForgVmxEntry, CpuNumber);
 
         //VMXON
-        if (__vmx_on(&pForgVmxEntry->VmxOnAreaPhysicalAddr.QuadPart))
+        if (__vmx_on(&pForgVmxEntry->VmxOnAreaPhysicalAddr))
         {
             FrogBreak();
             FrogPrint("Vmxon	Error");
@@ -154,7 +154,7 @@ VOID	Frog_DpcRunHyper(
         }
 
         //vmclear
-        if (__vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr.QuadPart))
+        if (__vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
         {
             FrogBreak();
             FrogPrint("ForgVmClear	Error");
@@ -162,7 +162,7 @@ VOID	Frog_DpcRunHyper(
         }
 
         //vmptrld
-        if (__vmx_vmptrld(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr.QuadPart))
+        if (__vmx_vmptrld(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
         {
             FrogBreak();
             FrogPrint("ForgVmptrld	Error");
@@ -177,7 +177,7 @@ VOID	Frog_DpcRunHyper(
             goto	_HyperInitExit;
         }
 
-        pForgVmxEntry->VmxIsEnable = TRUE;
+        pForgVmxEntry->HyperIsEnable = TRUE;
         if (__vmx_vmlaunch())
         {
             VmxErrorCode = Frog_Vmx_Read(VM_INSTRUCTION_ERROR);
@@ -226,21 +226,12 @@ FrogRetCode 	Frog_EnableHyper()
 
 //--------------------------------------Unload
 
-VOID	Frog_DpcRunHyper(
+VOID	Frog_DpcDisableHyper(
     _In_ struct _KDPC *Dpc,
     _In_opt_ PVOID DeferredContext,
     _In_opt_ PVOID SystemArgument1,
     _In_opt_ PVOID SystemArgument2
 )
-{
-
-
-    KeSignalCallDpcSynchronize(SystemArgument2);
-    KeSignalCallDpcDone(SystemArgument1);
-    
-}
-
-void					Frog_DpcDisableHyper() 
 {
     ULONG	        CurrentProcessor = 0;
     pFrogVmx		pForgVmxEntry = NULL;
@@ -249,28 +240,53 @@ void					Frog_DpcDisableHyper()
     CurrentProcessor = KeGetCurrentProcessorNumber();
     pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
 
-    if (Frog_VmCall(FrogExitTag, 0, 0, 0, 0))
+    FrogBreak();
+    if (Frog_VmCall(FrogExitTag, 0, 0, 0))
     {
-        if (!pForgVmxEntry->OrigCr4BitVmxeIsSet)
-        {
-            #define ia32_cr4_vmxe			13
-            ULONG64 cr4 = __readcr4();
-            _bittestandreset64(&cr4, ia32_cr4_vmxe);
-            __writecr4(cr4);
-        }
-
+        //挺怪的
+       // __writecr4(pForgVmxEntry->OrigCr4);
+        //__writecr0(pForgVmxEntry->OrigCr0);
         Frog_FreeHyperRegion(pForgVmxEntry);
-
     }
-	if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
+    if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
 
+    KeSignalCallDpcSynchronize(SystemArgument2);
+    KeSignalCallDpcDone(SystemArgument1);
+    
 }
+
 
 FrogRetCode	Frog_DisableHyper() 
 {
-    KeGenericCallDpc(Frog_DpcDisableHyper, NULL);
+    ULONG       NumberOfProcessors = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    for (ULONG  ProcessIndex = 0 ; ProcessIndex < NumberOfProcessors ; ProcessIndex++)
+    {
+        PROCESSOR_NUMBER          ProcessNumber = {0};
+        GROUP_AFFINITY                  affinity;
+        GROUP_AFFINITY                  Origaffinity;
+    
+        KeGetProcessorNumberFromIndex(ProcessIndex, &ProcessNumber);
+        RtlSecureZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+        affinity.Group = ProcessNumber.Group;
+        affinity.Mask = (KAFFINITY)1ull << ProcessNumber.Number;
+        KeSetSystemGroupAffinityThread(&affinity, &Origaffinity);
+    
+        pFrogVmx		pForgVmxEntry = NULL;
+        pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[ProcessIndex];
+    
+        if (Frog_VmCall(FrogExitTag, 0, 0, 0))
+        {
+            //挺怪的
+            //__writecr4(pForgVmxEntry->OrigCr4);
+            //__writecr0(pForgVmxEntry->OrigCr0);
+            Frog_FreeHyperRegion(pForgVmxEntry);
+        }
+        if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
+    
+        KeRevertToUserGroupAffinityThread(&Origaffinity);
+    }
 
-	__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all);
+	//__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all); //直接写也是蓝了
 	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
 
 	return	FrogSuccess;

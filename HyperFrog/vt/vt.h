@@ -22,9 +22,10 @@ typedef struct _VmxIoBitMap {
 }VmxIoBitMap,*pVmxIoBitMap;
 
 typedef struct _FrogVmx {
-	BOOLEAN			OrigCr4BitVmxeIsSet;
-    BOOLEAN             VmxIsEnable;
-	
+	ULONG64			OrigCr4;
+    ULONG64            OrigCr0;
+    BOOLEAN			HyperIsEnable;
+
 	KPROCESSOR_STATE		HostState;
 
 	pVmControlStructure		VmxOnArea;
@@ -32,10 +33,10 @@ typedef struct _FrogVmx {
 	VmxIoBitMap					VmxBitMapArea;
 	PVOID								VmxHostStackArea;
 
-	PHYSICAL_ADDRESS		VmxOnAreaPhysicalAddr;
-	PHYSICAL_ADDRESS		VmxVmcsAreaPhysicalAddr;
+	ULONG64		VmxOnAreaPhysicalAddr;
+    ULONG64		VmxVmcsAreaPhysicalAddr;
 
-	BOOLEAN			HyperIsEnable;
+	
 	ULONG			ProcessorNumber;
 
 	pEptPointer EptPoniter;

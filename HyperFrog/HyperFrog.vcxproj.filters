@@ -31,9 +31,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DriverEntry.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vt\vt.c">
       <Filter>Driver Files\VT\Vt_Source</Filter>
     </ClCompile>
@@ -45,6 +42,9 @@
     </ClCompile>
     <ClCompile Include="tools\tools.c">
       <Filter>Driver Files\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

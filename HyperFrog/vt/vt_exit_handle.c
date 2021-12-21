@@ -13,8 +13,7 @@ void			vmexit_readmsr_handle(pFrog_GuestContext	Context)
 }
 void			vmexit_cpuid_handle(pFrog_GuestContext	    Context)
 {
-	int		CpuidInfo[4] = { 0 };
-
+    CpuId		CpuidInfo = { 0 };
     switch (Context->Rax)
     {
         case FrogTag:
@@ -24,11 +23,11 @@ void			vmexit_cpuid_handle(pFrog_GuestContext	    Context)
         }
         default:
         {
-            __cpuidex(CpuidInfo, (int)Context->Rax, (int)Context->Rcx);
-            Context->Rax = (ULONG64)CpuidInfo[0];
-            Context->Rbx = (ULONG64)CpuidInfo[1];
-            Context->Rcx = (ULONG64)CpuidInfo[2];
-            Context->Rdx = (ULONG64)CpuidInfo[3];
+            __cpuidex((int *)&CpuidInfo, (int)Context->Rax, (int)Context->Rcx);
+            Context->Rax = (ULONG64)CpuidInfo.eax;
+            Context->Rbx = (ULONG64)CpuidInfo.ebx;
+            Context->Rcx = (ULONG64)CpuidInfo.ecx;
+            Context->Rdx = (ULONG64)CpuidInfo.edx;
             break;
         }
     }
@@ -71,6 +70,7 @@ void         vmexit_craccess_handle(pFrog_GuestContext	Context)
 }
 void        vmexit_vmcall_handle(pFrog_GuestContext	Context)
 {
+
     switch (Context->Rcx)
     {
         case    FrogExitTag:
@@ -80,24 +80,32 @@ void        vmexit_vmcall_handle(pFrog_GuestContext	Context)
             ULONG64		Rip = 0;
             ULONG64		Rsp = 0;
             ULONG64		ExitinstructionsLength = 0;
+            ULONG64         Guest_Cr3 = 0;
+            ULONG64         Guest_Gs_Base = 0;
+            ULONG64         Guest_Fs_Base = 0;
+
             CurrentProcessor = KeGetCurrentProcessorNumber();
             pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
-
-            //
-            __writecr3(Frog_Vmx_Read(GUEST_CR3));
-            __writemsr(kIa32FsBase, Frog_Vmx_Read(GUEST_FS_BASE));
-            __writemsr(kIa32GsBase, Frog_Vmx_Read(GUEST_GS_BASE));
-            _lgdt(&pForgVmxEntry->HostState.SpecialRegisters.Gdtr.Limit);
-            __lidt(&pForgVmxEntry->HostState.SpecialRegisters.Idtr.Limit);
-
-
-            __vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr);
-            __vmx_off();
 
             Rip = Frog_Vmx_Read(GUEST_RIP);
             Rsp = Frog_Vmx_Read(GUEST_RSP);
             ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
             Rip += ExitinstructionsLength;
+
+            Guest_Cr3 = Frog_Vmx_Read(GUEST_CR3);
+            Guest_Gs_Base = Frog_Vmx_Read(GUEST_GS_BASE);
+            Guest_Fs_Base = Frog_Vmx_Read(GUEST_FS_BASE);
+
+            __writecr3(Guest_Cr3);
+            __writemsr(kIa32FsBase, Guest_Fs_Base);
+            __writemsr(kIa32GsBase, Guest_Gs_Base);
+
+            _lgdt(&pForgVmxEntry->HostState.SpecialRegisters.Gdtr.Limit);//还原GDT边界
+            __lidt(&pForgVmxEntry->HostState.SpecialRegisters.Idtr.Limit);//还原IDT边界
+
+            __vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr);
+            __vmx_off();
+            pForgVmxEntry->HyperIsEnable = FALSE;
             Asm_Jmp(Rip, Rsp);
             break;
         }
@@ -116,7 +124,6 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
    
 	ExitInfo.all = 	(ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
 
-    FrogBreak();
 	switch (ExitInfo.fields.reason)
 	{
 		case	ExitCpuid:
@@ -170,7 +177,11 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 	ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
 	Rip += ExitinstructionsLength;
 
-    Frog_PrintfEx("reason=%d rip=%p", ExitInfo.fields.reason,Rip);
+    if (ExitInfo.fields.reason!= 31)
+    {
+        Frog_PrintfEx("reason=%d rip=%p", ExitInfo.fields.reason, Rip);
+    }
+
 	Frog_Vmx_Write(GUEST_RIP, Rip);
 	Frog_Vmx_Write(GUEST_RSP, Rsp);
     return;

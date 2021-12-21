@@ -206,7 +206,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DriverEntry.c" />
+    <ClCompile Include="main.c" />
     <ClCompile Include="tools\tools.c" />
     <ClCompile Include="vt\vt.c" />
     <ClCompile Include="vt\vt_exit_handle.c" />

@@ -103,8 +103,8 @@ FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 
     pForgVmxEntry->VmxBitMapArea.BitMapA = pForgVmxEntry->VmxBitMapArea.BitMap;
     pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG64)pForgVmxEntry->VmxBitMapArea.BitMap + PAGE_SIZE);
-	pForgVmxEntry->VmxOnAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxOnArea);
-	pForgVmxEntry->VmxVmcsAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxVmcsArea);
+	pForgVmxEntry->VmxOnAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxOnArea).QuadPart;
+	pForgVmxEntry->VmxVmcsAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxVmcsArea).QuadPart;
 
 	return	FrogSuccess;
 
@@ -157,13 +157,15 @@ void		Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry)
 	//开启后允许使用VMXON
 	Cr4	VmxCr4;
 	VmxCr4.all = __readcr4();
-	pForgVmxEntry->OrigCr4BitVmxeIsSet = (BOOLEAN)VmxCr4.fields.vmxe;
+    pForgVmxEntry->OrigCr4 = VmxCr4.all;
+
 	VmxCr4.all &= __readmsr(kIa32VmxCr4Fixed1);
 	VmxCr4.all |= __readmsr(kIa32VmxCr4Fixed0);
 	__writecr4(VmxCr4.all);
 
 	Cr0 VmxCr0;
 	VmxCr0.all = __readcr0();
+    pForgVmxEntry->OrigCr0 = VmxCr0.all;
 	VmxCr0.all &= __readmsr(kIa32VmxCr0Fixed1);
 	VmxCr0.all |= __readmsr(kIa32VmxCr0Fixed0);
 	__writecr0(VmxCr0.all);
