@@ -197,6 +197,14 @@ _HyperInitExit:
 FrogRetCode 	Frog_EnableHyper() 
 {
 	NTSTATUS	Status = STATUS_SUCCESS;
+
+    //申请 ForgVmxRegion
+    if (!Forg_AllocateForgVmxRegion()) {
+        FrogBreak();
+        FrogPrint("ForgAllocatePoolError");
+        return ForgAllocatePoolError;
+    }
+
     Frog_Cpu->KernelCr3 = __readcr3();//DPC递投的方式会导致进入到不同的进程环境中，所以需要保存内核的CR3
     Frog_Cpu->EnableEpt = TRUE;
 
@@ -206,13 +214,6 @@ FrogRetCode 	Frog_EnableHyper()
 		FrogPrint("NoSupportHyper");
 		return NoSupportHyper;
 	} 
-
-	//申请 ForgVmxRegion
-	if (!Forg_AllocateForgVmxRegion()) {
-		FrogBreak();
-		FrogPrint("ForgAllocatePoolError");
-		return ForgAllocatePoolError;
-	}
 
 	//设置MSR的位以支持虚拟化
 	Frog_SetMsrBitToEnableHyper();
