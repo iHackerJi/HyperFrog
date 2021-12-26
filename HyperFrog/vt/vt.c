@@ -197,6 +197,9 @@ _HyperInitExit:
 FrogRetCode 	Frog_EnableHyper() 
 {
 	NTSTATUS	Status = STATUS_SUCCESS;
+    Frog_Cpu->KernelCr3 = __readcr3();//DPC递投的方式会导致进入到不同的进程环境中，所以需要保存内核的CR3
+    Frog_Cpu->EnableEpt = TRUE;
+
 	//查询是否支持虚拟化
 	if (!Frog_IsSupportHyper()) {
 		FrogBreak();
@@ -214,8 +217,6 @@ FrogRetCode 	Frog_EnableHyper()
 	//设置MSR的位以支持虚拟化
 	Frog_SetMsrBitToEnableHyper();
 
-    Frog_Cpu->KernelCr3 = __readcr3();//DPC递投的方式会导致进入到不同的进程环境中，所以需要保存内核的CR3
-  
 	KeGenericCallDpc(Frog_DpcRunHyper, NULL);
 
 	return	FrogSuccess;
@@ -225,35 +226,6 @@ FrogRetCode 	Frog_EnableHyper()
 
 
 //--------------------------------------Unload
-
-VOID	Frog_DpcDisableHyper(
-    _In_ struct _KDPC *Dpc,
-    _In_opt_ PVOID DeferredContext,
-    _In_opt_ PVOID SystemArgument1,
-    _In_opt_ PVOID SystemArgument2
-)
-{
-    ULONG	        CurrentProcessor = 0;
-    pFrogVmx		pForgVmxEntry = NULL;
-    CpuId               Data = { 0 };
-
-    CurrentProcessor = KeGetCurrentProcessorNumber();
-    pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
-
-    FrogBreak();
-    if (Frog_VmCall(FrogExitTag, 0, 0, 0))
-    {
-        //挺怪的
-       // __writecr4(pForgVmxEntry->OrigCr4);
-        //__writecr0(pForgVmxEntry->OrigCr0);
-        Frog_FreeHyperRegion(pForgVmxEntry);
-    }
-    if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
-
-    KeSignalCallDpcSynchronize(SystemArgument2);
-    KeSignalCallDpcDone(SystemArgument1);
-    
-}
 
 
 FrogRetCode	Frog_DisableHyper() 
@@ -276,9 +248,8 @@ FrogRetCode	Frog_DisableHyper()
     
         if (Frog_VmCall(FrogExitTag, 0, 0, 0))
         {
-            //挺怪的
-            //__writecr4(pForgVmxEntry->OrigCr4);
-            //__writecr0(pForgVmxEntry->OrigCr0);
+            __writecr4(pForgVmxEntry->OrigCr4);
+            __writecr0(pForgVmxEntry->OrigCr0);
             Frog_FreeHyperRegion(pForgVmxEntry);
         }
         if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
@@ -286,7 +257,7 @@ FrogRetCode	Frog_DisableHyper()
         KeRevertToUserGroupAffinityThread(&Origaffinity);
     }
 
-	//__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all); //直接写也是蓝了
+	__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all); 
 	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
 
 	return	FrogSuccess;

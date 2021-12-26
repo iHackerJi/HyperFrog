@@ -16,10 +16,10 @@
 #define		HIDWORD(qword) ((((ULONGLONG)(qword)) >> 32) & 0xFFFFFFFF)
 
 typedef struct _VmxIoBitMap {
-	PVOID	BitMap;
-	PVOID	BitMapA;
-	PVOID	BitMapB;
-}VmxIoBitMap,*pVmxIoBitMap;
+    PVOID	BitMap;
+    PVOID	BitMapA;
+    PVOID	BitMapB;
+}VmxIoBitMap, *pVmxIoBitMap;
 
 typedef struct _FrogVmx {
 	ULONG64			OrigCr4;
@@ -47,7 +47,8 @@ typedef struct _FrogCpu {
 	Ia32FeatureControlMsr	OrigFeatureControlMsr;
 	pFrogVmx						pForgVmxEntrys;
     ULONG64						KernelCr3;
-    ULONG64                        KernelGsBase;
+
+    BOOLEAN                        EnableEpt;
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {

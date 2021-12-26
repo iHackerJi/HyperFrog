@@ -49,10 +49,8 @@ Asm_VmxCall Endp
 
 VmxEntryPointer	Proc
 	cli
-
  push r15
  mov r15,rsp
- add rsp,8
  push r14
  push r13
  push r12

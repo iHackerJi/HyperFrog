@@ -6,31 +6,7 @@
 #define		SEGMENT_LDT    1
 #define		RPL_MAX_MASK 3
 
-#define MSR_APIC_BASE                       0x01B
-#define MSR_IA32_FEATURE_CONTROL            0x03A
-#define MSR_IA32_VMX_BASIC                  0x480
-#define MSR_IA32_VMX_PINBASED_CTLS          0x481
-#define MSR_IA32_VMX_PROCBASED_CTLS         0x482
-#define MSR_IA32_VMX_EXIT_CTLS              0x483
-#define MSR_IA32_VMX_ENTRY_CTLS             0x484
-#define MSR_IA32_VMX_MISC                   0x485
-#define MSR_IA32_VMX_CR0_FIXED0             0x486
-#define MSR_IA32_VMX_CR0_FIXED1             0x487
-#define MSR_IA32_VMX_CR4_FIXED0             0x488
-#define MSR_IA32_VMX_CR4_FIXED1             0x489
-#define MSR_IA32_VMX_VMCS_ENUM              0x48A
-#define MSR_IA32_VMX_PROCBASED_CTLS2        0x48B
-#define MSR_IA32_VMX_EPT_VPID_CAP           0x48C
-#define MSR_IA32_VMX_TRUE_PINBASED_CTLS     0x48D
-#define MSR_IA32_VMX_TRUE_PROCBASED_CTLS    0x48E
-#define MSR_IA32_VMX_TRUE_EXIT_CTLS         0x48F
-#define MSR_IA32_VMX_TRUE_ENTRY_CTLS        0x490
-#define MSR_IA32_VMX_VMFUNC                 0x491
-#define MSR_IA32_SYSENTER_CS                0x174
-#define MSR_IA32_SYSENTER_ESP               0x175
-#define MSR_IA32_SYSENTER_EIP               0x176
-#define MSR_IA32_DEBUGCTL                   0x1D9
-#define MSR_LSTAR                           0xC0000082
+
 
 //-------------Enum
 
@@ -277,6 +253,51 @@ enum MovCrAccessType {
 
 
 //union----------------------------------
+
+typedef union _Ia32VmxEptVpidCapMsr
+{
+    unsigned __int64 all;
+    struct {
+        unsigned __int64 support_execute_only_pages : 1;                        //!< [0]    为1时, 允许 execeute-only
+        unsigned __int64 reserved1 : 5;                                         //!< [1:5]  
+        unsigned __int64 support_page_walk_length4 : 1;                         //!< [6]	支持4级页表
+        unsigned __int64 reserved2 : 1;                                         //!< [7]	
+        unsigned __int64 support_uncacheble_memory_type : 1;                    //!< [8]	EPT 允许使用 UC 类型(0),请参考【处理器虚拟化技术】(第4.4.1.3节)
+        unsigned __int64 reserved3 : 5;                                         //!< [9:13] 
+        unsigned __int64 support_write_back_memory_type : 1;                    //!< [14]	EPT 允许使用 WB 类型(6)
+        unsigned __int64 reserved4 : 1;                                         //!< [15]
+        unsigned __int64 support_pde_2mb_pages : 1;                             //!< [16]	EPT 支持2MB页面
+        unsigned __int64 support_pdpte_1_gb_pages : 1;                          //!< [17]	EPT 支持1GB页面
+        unsigned __int64 reserved5 : 2;                                         //!< [18:19]
+        unsigned __int64 support_invept : 1;                                    //!< [20]	为1时, 支持 invept 指令
+        unsigned __int64 support_accessed_and_dirty_flag : 1;                   //!< [21]	为1时, 支持 dirty 标志位
+        unsigned __int64 reserved6 : 3;                                         //!< [22:24]
+        unsigned __int64 support_single_context_invept : 1;                     //!< [25]	为1时, 支持 single-context invept
+        unsigned __int64 support_all_context_invept : 1;                        //!< [26]	为1时, 支持 all-context invept
+        unsigned __int64 reserved7 : 5;                                         //!< [27:31]
+        unsigned __int64 support_invvpid : 1;                                   //!< [32]	为1时, 支持 invvpid 指令
+        unsigned __int64 reserved8 : 7;                                         //!< [33:39]
+        unsigned __int64 support_individual_address_invvpid : 1;                //!< [40]	为1时, 支持 individual-address invvpid 指令
+        unsigned __int64 support_single_context_invvpid : 1;                    //!< [41]	为1时, 支持 single-context invvpid 指令
+        unsigned __int64 support_all_context_invvpid : 1;                       //!< [42]	为1时, 支持 all-context invvpid 指令
+        unsigned __int64 support_single_context_retaining_globals_invvpid : 1;  //!< [43]	为1时, 支持 single-context-retaining-globals invvpid
+        unsigned __int64 reserved9 : 20;                                        //!< [44:63]
+    }fields;
+}Ia32VmxEptVpidCapMsr, *pIa32VmxEptVpidCapMsr;
+
+typedef union _Ia32MtrrDefTypeRegister
+{
+    struct
+    {
+        UINT64 DefaultMemoryType : 3;
+        UINT64 Reserved1 : 7;
+        UINT64 FixedRangeMtrrEnable : 1;
+        UINT64 MtrrEnable : 1;
+        UINT64 Reserved2 : 52;
+    };
+
+    UINT64 Flags;
+} Ia32MtrrDefTypeRegister, *pIa32MtrrDefTypeRegister;
 
 
 

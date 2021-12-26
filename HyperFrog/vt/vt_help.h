@@ -5,7 +5,7 @@
 
 
 BOOLEAN		CPUID_VMXIsSupport();
-BOOLEAN		MSR_VMXisSupport();
+BOOLEAN		MSR_VMXIsSupport();
 BOOLEAN		CR0_VMXisSuppor();
 PVOID				FrogExAllocatePool(ULONG Size);
 BOOLEAN		Forg_AllocateForgVmxRegion();

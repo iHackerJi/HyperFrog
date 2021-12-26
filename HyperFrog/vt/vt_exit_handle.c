@@ -164,11 +164,8 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
             Frog_Vmx_Write(GUEST_RFLAGS, GuestRflag.all);
             break;
         }
-
-
 		default:
 			break;
-
 	}
 
     //正常处理流程
@@ -176,11 +173,6 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 	Rsp =   Frog_Vmx_Read(GUEST_RSP);
 	ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
 	Rip += ExitinstructionsLength;
-
-    if (ExitInfo.fields.reason!= 31)
-    {
-        Frog_PrintfEx("reason=%d rip=%p", ExitInfo.fields.reason, Rip);
-    }
 
 	Frog_Vmx_Write(GUEST_RIP, Rip);
 	Frog_Vmx_Write(GUEST_RSP, Rsp);

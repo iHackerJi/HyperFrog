@@ -13,13 +13,14 @@ BOOLEAN		CPUID_VMXIsSupport()
 	__cpuid(cpuInfo, 0x1);
 	CpuFeaturesEcx info;
 	info.all = cpuInfo[EnumECX];
+
 	if (!info.fields.vmx)
 		return	FALSE;
 
 	return	TRUE;
 }
 
-BOOLEAN		MSR_VMXisSupport() 
+BOOLEAN		MSR_VMXIsSupport() 
 {
 
 	Ia32FeatureControlMsr VmxFeatureControl;
@@ -30,7 +31,33 @@ BOOLEAN		MSR_VMXisSupport()
 	return	FALSE;
 }
 
-BOOLEAN		CR0_VMXisSuppor()
+BOOLEAN         EPT_VmxIsSupport()
+{
+    Ia32VmxEptVpidCapMsr                VpidRegister = { 0 };
+    Ia32MtrrDefTypeRegister              MTRRDefType = { 0 };
+
+    if (Frog_Cpu->EnableEpt)
+    {
+        VpidRegister.all = __readmsr(kIa32VmxEptVpidCap);
+        MTRRDefType.Flags = __readmsr(kIa32MtrrDefType);
+
+        if (!VpidRegister.fields.support_page_walk_length4
+            || !VpidRegister.fields.support_write_back_memory_type
+            || !VpidRegister.fields.support_pde_2mb_pages)
+        {
+            return FALSE;
+        }
+
+        if (!MTRRDefType.MtrrEnable)
+        {
+            return FALSE;
+        }
+    }
+    return TRUE;
+
+}
+
+BOOLEAN     CR0_VMXisSuppor()
 {
 
 	Cr0 VmxCr0;
@@ -45,6 +72,8 @@ BOOLEAN		CR0_VMXisSuppor()
 
 	return FALSE;
 }
+
+
 
 PVOID  FrogExAllocatePool(ULONG Size)
 {
@@ -191,11 +220,11 @@ BOOLEAN		Frog_IsSupportHyper()
 {
 
 	if (CPUID_VMXIsSupport() &&
-		MSR_VMXisSupport() &&
-		CR0_VMXisSuppor()
+		MSR_VMXIsSupport() &&
+		CR0_VMXisSuppor()  &&
+        EPT_VmxIsSupport()
 		)
 		return	TRUE;
-
 
 	return FALSE;
 
