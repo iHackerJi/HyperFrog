@@ -250,15 +250,13 @@ FrogRetCode	Frog_DisableHyper()
         if (Frog_VmCall(FrogExitTag, 0, 0, 0))
         {
             __writecr4(pForgVmxEntry->OrigCr4);
-            __writecr0(pForgVmxEntry->OrigCr0);
+             __writecr0(pForgVmxEntry->OrigCr0);
             Frog_FreeHyperRegion(pForgVmxEntry);
         }
-        if (pForgVmxEntry)		FrogExFreePool(pForgVmxEntry);
-    
         KeRevertToUserGroupAffinityThread(&Origaffinity);
     }
-
-	__writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all); 
+    __writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all);
+    if (Frog_Cpu->pForgVmxEntrys)		FrogExFreePool(Frog_Cpu->pForgVmxEntrys);
 	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
 
 	return	FrogSuccess;

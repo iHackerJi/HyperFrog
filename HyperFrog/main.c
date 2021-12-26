@@ -15,8 +15,8 @@ void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 
 NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
 	pDriverObj->DriverUnload = UnloadDriver;
-	FrogRetCode	Code = FrogSuccess;
-	Code = Frog_EnableHyper();
+	FrogRetCode	Status = FrogSuccess;
+    Status = Frog_EnableHyper();
 
 	return	STATUS_SUCCESS;
 }

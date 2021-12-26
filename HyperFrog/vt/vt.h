@@ -35,12 +35,13 @@ typedef struct _FrogVmx {
 
 	ULONG64		VmxOnAreaPhysicalAddr;
     ULONG64		VmxVmcsAreaPhysicalAddr;
-
-	
 	ULONG			ProcessorNumber;
-
-	pEptPointer EptPoniter;
 }FrogVmx, *pFrogVmx;
+
+typedef struct _FrogVmxEptInfo
+{
+
+}FrogVmxEptInfo,*PFrogVmxEptInfo;
 
 typedef struct _FrogCpu {
 	ULONG							ProcessOrNumber;
@@ -49,6 +50,7 @@ typedef struct _FrogCpu {
     ULONG64						KernelCr3;
 
     BOOLEAN                        EnableEpt;
+
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {

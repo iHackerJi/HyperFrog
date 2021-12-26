@@ -1,10 +1,8 @@
 #include "vt_help.h"
-
-
-
 EXTERN_C pFrogCpu		Frog_Cpu;
 
-BOOLEAN		CPUID_VMXIsSupport()
+BOOLEAN
+CPUID_VMXIsSupport()
 {
 
 	int cpuInfo[4];
@@ -20,7 +18,8 @@ BOOLEAN		CPUID_VMXIsSupport()
 	return	TRUE;
 }
 
-BOOLEAN		MSR_VMXIsSupport() 
+BOOLEAN
+MSR_VMXIsSupport() 
 {
 
 	Ia32FeatureControlMsr VmxFeatureControl;
@@ -31,7 +30,8 @@ BOOLEAN		MSR_VMXIsSupport()
 	return	FALSE;
 }
 
-BOOLEAN         EPT_VmxIsSupport()
+BOOLEAN         
+EPT_VmxIsSupport()
 {
     Ia32VmxEptVpidCapMsr                VpidRegister = { 0 };
     Ia32MtrrDefTypeRegister              MTRRDefType = { 0 };
@@ -57,7 +57,8 @@ BOOLEAN         EPT_VmxIsSupport()
 
 }
 
-BOOLEAN     CR0_VMXisSuppor()
+BOOLEAN     
+CR0_VMXisSuppor()
 {
 
 	Cr0 VmxCr0;
@@ -73,9 +74,8 @@ BOOLEAN     CR0_VMXisSuppor()
 	return FALSE;
 }
 
-
-
-PVOID  FrogExAllocatePool(ULONG Size)
+PVOID  
+FrogExAllocatePool(ULONG Size)
 {
 	PVOID  ResultAddr = ExAllocatePoolWithTag(NonPagedPool, Size, FrogTag);
 	if (ResultAddr != NULL)
@@ -86,7 +86,8 @@ PVOID  FrogExAllocatePool(ULONG Size)
 }
 
 //创建VMX管理结构
-BOOLEAN Forg_AllocateForgVmxRegion() 
+BOOLEAN 
+Forg_AllocateForgVmxRegion() 
 {
 	ULONG		CountOfProcessor = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 	ULONG		FrogsVmxSize = sizeof(FrogVmx) * CountOfProcessor;
@@ -101,8 +102,14 @@ BOOLEAN Forg_AllocateForgVmxRegion()
 	return TRUE;
 }
 
+BOOLEAN
+Frog_AllocateFrogEptMem()
+{
 
-void	Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry)
+}
+
+void	
+Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry)
 {
 
 	if (pForgVmxEntry->VmxOnArea != NULL && MmIsAddressValid(pForgVmxEntry->VmxOnArea))	FrogExFreePool(pForgVmxEntry->VmxOnArea);
@@ -114,7 +121,8 @@ void	Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry)
 }
 
 //创建VMCS、VMXON、BITMAP区域
-FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) 
+FrogRetCode 
+Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber) 
 {
 	pForgVmxEntry->ProcessorNumber = CpuNumber;
 
@@ -145,7 +153,8 @@ __Exit:
 }
 
 //设置 VMXON、VMCS版本号
-void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
+void	
+Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 {
 
 	Ia32VmxBasicMsr	VmxBasicMsr = {0};
@@ -158,7 +167,8 @@ void	Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 
 }
 
-FrogRetCode	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue) 
+FrogRetCode	
+Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue) 
 {
 	UCHAR	 State = 0;
 	State = __vmx_vmwrite(Field, FieldValue);
@@ -172,16 +182,17 @@ FrogRetCode	Frog_Vmx_Write(ULONG64 Field, ULONG64	FieldValue)
 	return	State;
 }
 
-ULONG64		Frog_Vmx_Read(ULONG64 Field)
+ULONG64		
+Frog_Vmx_Read(ULONG64 Field)
 {
 	ULONG64		FieldValue = 0;
 	__vmx_vmread(Field, &FieldValue);
 	return FieldValue;
 }
 
-
 //设置CR0寄存器的一些位以支持虚拟化
-void		Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry)
+void		
+Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry)
 {
 	//开启后允许使用VMXON
 	Cr4	VmxCr4;
@@ -200,9 +211,9 @@ void		Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry)
 	__writecr0(VmxCr0.all);
 }
 
-
 //设置MSR寄存器的一些位以支持虚拟化
-void		Frog_SetMsrBitToEnableHyper() 
+void		
+Frog_SetMsrBitToEnableHyper() 
 {
 
 	//此位要置1否则不能执行VMXON
@@ -216,7 +227,8 @@ void		Frog_SetMsrBitToEnableHyper()
 }
 
 //检查是否支持虚拟化
-BOOLEAN		Frog_IsSupportHyper() 
+BOOLEAN		
+Frog_IsSupportHyper() 
 {
 
 	if (CPUID_VMXIsSupport() &&
@@ -230,9 +242,8 @@ BOOLEAN		Frog_IsSupportHyper()
 
 }
 
-
-
-ULONG 	Frog_VmxAdjustControlValue(Msr	msr, ULONG MapValue)
+ULONG 	
+Frog_VmxAdjustControlValue(Msr	msr, ULONG MapValue)
 {
 	LARGE_INTEGER	MsrValue = { 0 };
 	ULONG	AdjustedValue = 0;
@@ -246,8 +257,8 @@ ULONG 	Frog_VmxAdjustControlValue(Msr	msr, ULONG MapValue)
 	return AdjustedValue;
 }
 
-
-VOID		Frog_GetSelectInfo(
+VOID		
+Frog_GetSelectInfo(
 	PKDESCRIPTOR		pGdtr,
 	USHORT					Select,
 	PULONG64				pBase,
@@ -281,8 +292,8 @@ VOID		Frog_GetSelectInfo(
 	*pAccess |= (pGdtEntry->Bits.Present) ? 0 : 0x10000;	//判断在不在内存，即P位
 }
 
-
-FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
+FrogRetCode		
+Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 {
 	FrogRetCode			Status = FrogSuccess;
 	PKDESCRIPTOR		pGdtr = &HostState.SpecialRegisters.Gdtr;
@@ -361,7 +372,8 @@ FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	return Status;
 }
 
-BOOLEAN     Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9)
+BOOLEAN     
+Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9)
 {
     CpuId Data = { 0 };
 
