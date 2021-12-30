@@ -4,9 +4,9 @@
 #include "vt.h"
 
 
-BOOLEAN		CPUID_VMXIsSupport();
-BOOLEAN		MSR_VMXIsSupport();
-BOOLEAN		CR0_VMXisSuppor();
+BOOLEAN		CPUID_VmxIsSupport();
+BOOLEAN		MSR_VmxIsSupport();
+BOOLEAN		CR0_VmxIsSuppor();
 PVOID				FrogExAllocatePool(ULONG Size);
 BOOLEAN		Forg_AllocateForgVmxRegion();
 void					Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry);

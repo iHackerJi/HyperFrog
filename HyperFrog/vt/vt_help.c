@@ -2,7 +2,7 @@
 EXTERN_C pFrogCpu		Frog_Cpu;
 
 BOOLEAN
-CPUID_VMXIsSupport()
+CPUID_VmxIsSupport()
 {
 
 	int cpuInfo[4];
@@ -19,7 +19,7 @@ CPUID_VMXIsSupport()
 }
 
 BOOLEAN
-MSR_VMXIsSupport() 
+MSR_VmxIsSupport() 
 {
 
 	Ia32FeatureControlMsr VmxFeatureControl;
@@ -58,7 +58,7 @@ EPT_VmxIsSupport()
 }
 
 BOOLEAN     
-CR0_VMXisSuppor()
+CR0_VmxIsSuppor()
 {
 
 	Cr0 VmxCr0;
@@ -231,9 +231,9 @@ BOOLEAN
 Frog_IsSupportHyper() 
 {
 
-	if (CPUID_VMXIsSupport() &&
-		MSR_VMXIsSupport() &&
-		CR0_VMXisSuppor()  &&
+	if (CPUID_VmxIsSupport() &&
+		MSR_VmxIsSupport() &&
+		CR0_VmxIsSuppor()  &&
         EPT_VmxIsSupport()
 		)
 		return	TRUE;

@@ -38,10 +38,10 @@ typedef struct _FrogVmx {
 	ULONG			ProcessorNumber;
 }FrogVmx, *pFrogVmx;
 
-typedef struct _FrogVmxEptInfo
-{
-
-}FrogVmxEptInfo,*PFrogVmxEptInfo;
+//typedef struct _FrogVmxEptInfo
+//{
+//
+//}FrogVmxEptInfo,*PFrogVmxEptInfo;
 
 typedef struct _FrogCpu {
 	ULONG							ProcessOrNumber;
