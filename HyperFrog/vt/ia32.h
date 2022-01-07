@@ -6,7 +6,13 @@
 #define		SEGMENT_LDT    1
 #define		RPL_MAX_MASK 3
 
-
+#define PML4E_ENTRY_COUNT 512
+#define PDPTE_ENTRY_COUNT 512
+#define PDE_ENTRY_COUNT   512
+#define PTE_ENTRY_COUNT   512
+#define _1GB              (1 * 1024 * 1024 * 1024)
+#define _2MB              (2 * 1024 * 1024)
+#define _4KB              (1024)
 
 //-------------Enum
 
@@ -34,7 +40,6 @@ typedef enum _VECTOR_EXCEPTION
     VECTOR_VIRTUALIZATION_EXCEPTION = 20
 } VECTOR_EXCEPTION;
 
-
 typedef		enum _CpuidIndex
 {
 	EnumEAX,
@@ -42,7 +47,6 @@ typedef		enum _CpuidIndex
 	EnumECX,
 	EnumEDX
 }CpuidIndex,*pCpuidIndex;
-
 
 typedef enum _Msr {
 	kIa32ApicBase = 0x01B,
@@ -93,7 +97,6 @@ typedef enum _Msr {
 	kIa32KernelGsBase = 0xC0000102,
 	kIa32TscAux = 0xC0000103,
 }Msr;
-
 
 // VMCS data fields
 enum
@@ -248,11 +251,233 @@ enum MovCrAccessType {
     kLmsw
 };
 
-
 //------------------------------
 
 
 //union----------------------------------
+
+typedef union _Eptp
+{
+	struct
+	{
+		/**
+		 * @brief [Bits 2:0] EPT paging-structure memory type:
+		 * - 0 = Uncacheable (UC)
+		 * - 6 = Write-back (WB)
+		 * Other values are reserved.
+		 *
+		 * @see Vol3C[28.2.6(EPT and memory Typing)]
+		 */
+		UINT64 MemoryType : 3;
+
+		/**
+		 * @brief [Bits 5:3] This value is 1 less than the EPT page-walk length.
+		 *
+		 * @see Vol3C[28.2.6(EPT and memory Typing)]
+		 */
+		UINT64 PageWalkLength : 3;
+
+		/**
+		 * @brief [Bit 6] Setting this control to 1 enables accessed and dirty flags for EPT.
+		 *
+		 * @see Vol3C[28.2.4(Accessed and Dirty Flags for EPT)]
+		 */
+		UINT64 EnableAccessAndDirtyFlags : 1;
+		UINT64 Reserved1 : 5;
+
+		/**
+		 * @brief [Bits 47:12] Bits N-1:12 of the physical address of the 4-KByte aligned EPT PML4 table.
+		 */
+		UINT64 PageFrameNumber : 36;
+		UINT64 Reserved2 : 16;
+	};
+
+	UINT64 Flags;
+} Eptp, * pEptp;
+
+typedef union _EPML4E
+{
+	struct
+	{
+		/**
+		 * @brief [Bit 0] Read access; indicates whether reads are allowed from the 512-GByte region controlled by this entry.
+		 */
+		UINT64 ReadAccess : 1;
+
+		/**
+		 * @brief [Bit 1] Write access; indicates whether writes are allowed from the 512-GByte region controlled by this entry.
+		 */
+		UINT64 WriteAccess : 1;
+
+		/**
+		 * @brief [Bit 2] If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether
+		 * instruction fetches are allowed from the 512-GByte region controlled by this entry.
+		 * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+		 * allowed from supervisor-mode linear addresses in the 512-GByte region controlled by this entry.
+		 */
+		UINT64 ExecuteAccess : 1;
+		UINT64 Reserved1 : 5;
+
+		/**
+		 * @brief [Bit 8] If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 512-GByte region
+		 * controlled by this entry. Ignored if bit 6 of EPTP is 0.
+		 *
+		 * @see Vol3C[28.2.4(Accessed and Dirty Flags for EPT)]
+		 */
+		UINT64 Accessed : 1;
+		UINT64 Reserved2 : 1;
+
+		/**
+		 * @brief [Bit 10] Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control
+		 * is 1, indicates whether instruction fetches are allowed from user-mode linear addresses in the 512-GByte region
+		 * controlled by this entry. If that control is 0, this bit is ignored.
+		 */
+		UINT64 UserModeExecute : 1;
+		UINT64 Reserved3 : 1;
+
+		/**
+		 * @brief [Bits 47:12] Physical address of 4-KByte aligned EPT page-directory-pointer table referenced by this entry.
+		 */
+		UINT64 PageFrameNumber : 36;
+		UINT64 Reserved4 : 16;
+	};
+
+	UINT64 Flags;
+} EPML4E, * PEPML4E;
+
+typedef union _EPDPTE
+{
+	struct
+	{
+		/**
+		 * @brief [Bit 0] Read access; indicates whether reads are allowed from the 1-GByte region controlled by this entry.
+		 */
+		UINT64 ReadAccess : 1;
+
+		/**
+		 * @brief [Bit 1] Write access; indicates whether writes are allowed from the 1-GByte region controlled by this entry.
+		 */
+		UINT64 WriteAccess : 1;
+
+		/**
+		 * @brief [Bit 2] If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether
+		 * instruction fetches are allowed from the 1-GByte region controlled by this entry.
+		 * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+		 * allowed from supervisor-mode linear addresses in the 1-GByte region controlled by this entry.
+		 */
+		UINT64 ExecuteAccess : 1;
+		UINT64 Reserved1 : 5;
+
+		/**
+		 * @brief [Bit 8] If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 1-GByte region
+		 * controlled by this entry. Ignored if bit 6 of EPTP is 0.
+		 *
+		 * @see Vol3C[28.2.4(Accessed and Dirty Flags for EPT)]
+		 */
+		UINT64 Accessed : 1;
+		UINT64 Reserved2 : 1;
+
+		/**
+		 * @brief [Bit 10] Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control
+		 * is 1, indicates whether instruction fetches are allowed from user-mode linear addresses in the 1-GByte region controlled
+		 * by this entry. If that control is 0, this bit is ignored.
+		 */
+		UINT64 UserModeExecute : 1;
+		UINT64 Reserved3 : 1;
+
+		/**
+		 * @brief [Bits 47:12] Physical address of 4-KByte aligned EPT page-directory-pointer table referenced by this entry.
+		 */
+		UINT64 PageFrameNumber : 36;
+		UINT64 Reserved4 : 16;
+	};
+
+	UINT64 Flags;
+} EPDPTE, * PEPDPTE;
+
+typedef union _EPDE_2MB
+{
+	struct
+	{
+		/**
+		 * @brief [Bit 0] Read access; indicates whether reads are allowed from the 2-MByte page referenced by this entry.
+		 */
+		UINT64 ReadAccess : 1;
+
+		/**
+		 * @brief [Bit 1] Write access; indicates whether writes are allowed from the 2-MByte page referenced by this entry.
+		 */
+		UINT64 WriteAccess : 1;
+
+		/**
+		 * @brief [Bit 2] If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether
+		 * instruction fetches are allowed from the 2-MByte page controlled by this entry.
+		 * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+		 * allowed from supervisor-mode linear addresses in the 2-MByte page controlled by this entry.
+		 */
+		UINT64 ExecuteAccess : 1;
+
+		/**
+		 * @brief [Bits 5:3] EPT memory type for this 2-MByte page.
+		 *
+		 * @see Vol3C[28.2.6(EPT and memory Typing)]
+		 */
+		UINT64 MemoryType : 3;
+
+		/**
+		 * @brief [Bit 6] Ignore PAT memory type for this 2-MByte page.
+		 *
+		 * @see Vol3C[28.2.6(EPT and memory Typing)]
+		 */
+		UINT64 IgnorePat : 1;
+
+		/**
+		 * @brief [Bit 7] Must be 1 (otherwise, this entry references an EPT page table).
+		 */
+		UINT64 LargePage : 1;
+
+		/**
+		 * @brief [Bit 8] If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 2-MByte page
+		 * referenced by this entry. Ignored if bit 6 of EPTP is 0.
+		 *
+		 * @see Vol3C[28.2.4(Accessed and Dirty Flags for EPT)]
+		 */
+		UINT64 Accessed : 1;
+
+		/**
+		 * @brief [Bit 9] If bit 6 of EPTP is 1, dirty flag for EPT; indicates whether software has written to the 2-MByte page referenced
+		 * by this entry. Ignored if bit 6 of EPTP is 0.
+		 *
+		 * @see Vol3C[28.2.4(Accessed and Dirty Flags for EPT)]
+		 */
+		UINT64 Dirty : 1;
+
+		/**
+		 * @brief [Bit 10] Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control
+		 * is 1, indicates whether instruction fetches are allowed from user-mode linear addresses in the 2-MByte page controlled
+		 * by this entry. If that control is 0, this bit is ignored.
+		 */
+		UINT64 UserModeExecute : 1;
+		UINT64 Reserved1 : 10;
+
+		/**
+		 * @brief [Bits 47:21] Physical address of 4-KByte aligned EPT page-directory-pointer table referenced by this entry.
+		 */
+		UINT64 PageFrameNumber : 27;
+		UINT64 Reserved2 : 15;
+
+		/**
+		 * @brief [Bit 63] Suppress \#VE. If the "EPT-violation \#VE" VM-execution control is 1, EPT violations caused by accesses to this
+		 * page are convertible to virtualization exceptions only if this bit is 0. If "EPT-violation \#VE" VMexecution control is
+		 * 0, this bit is ignored.
+		 *
+		 * @see Vol3C[25.5.6.1(Convertible EPT Violations)]
+		 */
+		UINT64 SuppressVe : 1;
+	};
+
+	UINT64 Flags;
+} EPDE_2MB, * PEPDE_2MB;
 
 typedef union _Ia32VmxEptVpidCapMsr
 {

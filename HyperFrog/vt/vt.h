@@ -25,9 +25,9 @@ typedef struct _FrogVmx {
 	ULONG64			OrigCr4;
     ULONG64            OrigCr0;
     BOOLEAN			HyperIsEnable;
-
 	KPROCESSOR_STATE		HostState;
 
+	FrogVmxEptInfo				VmxEptInfo;
 	pVmControlStructure		VmxOnArea;
 	pVmControlStructure		VmxVmcsArea;
 	VmxIoBitMap					VmxBitMapArea;
@@ -38,19 +38,20 @@ typedef struct _FrogVmx {
 	ULONG			ProcessorNumber;
 }FrogVmx, *pFrogVmx;
 
-//typedef struct _FrogVmxEptInfo
-//{
-//
-//}FrogVmxEptInfo,*PFrogVmxEptInfo;
+typedef struct _FrogVmxEptInfo
+{
+	Eptp		   VmxEptp;
+    DECLSPEC_ALIGN(PAGE_SIZE) EPML4E	PML4T[PML4E_ENTRY_COUNT];
+    DECLSPEC_ALIGN(PAGE_SIZE) EPDPTE	PDPT[PDPTE_ENTRY_COUNT];
+    DECLSPEC_ALIGN(PAGE_SIZE) EPDE_2MB  PDT[PDPTE_ENTRY_COUNT][PDE_ENTRY_COUNT];
+}FrogVmxEptInfo,*PFrogVmxEptInfo;
 
 typedef struct _FrogCpu {
 	ULONG							ProcessOrNumber;
 	Ia32FeatureControlMsr	OrigFeatureControlMsr;
 	pFrogVmx						pForgVmxEntrys;
     ULONG64						KernelCr3;
-
     BOOLEAN                        EnableEpt;
-
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {
@@ -84,5 +85,5 @@ typedef struct _Frog_GuestContext
 	ULONG64 R15;
 }Frog_GuestContext, *pFrog_GuestContext;
 
-FrogRetCode 	Frog_EnableHyper();
+FrogRetCode Frog_EnableHyper();
 FrogRetCode Frog_DisableHyper();

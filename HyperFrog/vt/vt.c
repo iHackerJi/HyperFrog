@@ -4,7 +4,7 @@
 pFrogCpu		Frog_Cpu = NULL;
 
 FrogRetCode
-Frog_SetupVmcs(pFrogVmx		pForgVmxEntry) 
+Frog_SetupVmcs(pFrogVmx pForgVmxEntry) 
 {
 	ULONG														UseTrueMsrs = 0;
 	FrogRetCode												Status = FrogSuccess;
@@ -16,6 +16,7 @@ Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	VmxmexitControls										VmExitControls = { 0 };
 	KPROCESSOR_STATE									HostState = pForgVmxEntry->HostState;
 
+	Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, 0xFFFFFFFFFFFFFFFF);
 	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
 	UseTrueMsrs = (BOOLEAN)VmxBasicMsr.fields.vmx_capability_hint;
 
@@ -47,19 +48,6 @@ Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	Status |=Frog_Vmx_Write(SECONDARY_VM_EXEC_CONTROL, VmSecondaryProcessorBasedControls.all);
 	Status |= Frog_Vmx_Write(VM_ENTRY_CONTROLS, VmVmentryControls.all);
 	Status |= Frog_Vmx_Write(VM_EXIT_CONTROLS, VmExitControls.all);
-
-  //PULONG  bitMapReadLow =  pForgVmxEntry->VmxBitMapArea.BitMapA;
-  //PULONG  bitMapReadHight = pForgVmxEntry->VmxBitMapArea.BitMapB;
-  //RTL_BITMAP bitMapReadLowHeader = { 0 };
-  //RTL_BITMAP bitMapReadHighHeader = { 0 };
-  //RtlInitializeBitMap(&bitMapReadLowHeader, (PULONG)bitMapReadLow, 1024 * 8);
-  //RtlInitializeBitMap(&bitMapReadHighHeader, (PULONG)bitMapReadHight, 1024 * 8);
-  //
-  //RtlSetBit(&bitMapReadLowHeader, MSR_IA32_FEATURE_CONTROL);    // MSR_IA32_FEATURE_CONTROL
-  //RtlSetBit(&bitMapReadLowHeader, MSR_IA32_DEBUGCTL);          // MSR_DEBUGCTL
-  //RtlSetBit(&bitMapReadHighHeader, MSR_LSTAR - 0xC0000000);     // MSR_LSTAR
-  //for (ULONG i = MSR_IA32_VMX_BASIC; i <= MSR_IA32_VMX_VMFUNC; i++)
-  //    RtlSetBit(&bitMapReadLowHeader, i);
 
     Status |= Frog_Vmx_Write(MSR_BITMAP, MmGetPhysicalAddress(pForgVmxEntry->VmxBitMapArea.BitMap).QuadPart);
 
@@ -105,11 +93,17 @@ Frog_SetupVmcs(pFrogVmx		pForgVmxEntry)
 	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG64)pForgVmxEntry->VmxHostStackArea + HostStackSize);
 	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
 
-    Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, 0xFFFFFFFFFFFFFFFF);
+
 
 	return Status;
 }
 
+FrogRetCode
+Frog_InitEpt(pFrogVmx pForgVmxEntry)
+{
+	pForgVmxEntry->VmxEptInfo.PML4T;
+
+}
 
 VOID	Frog_DpcRunHyper(
 	_In_ struct _KDPC *Dpc,
@@ -165,7 +159,7 @@ VOID	Frog_DpcRunHyper(
         if (__vmx_vmptrld(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr))
         {
             FrogBreak();
-            FrogPrint("ForgVmptrld	Error");
+            FrogPrint("ForgVmptrld Error");
             goto _HyperInitExit;
         }
 
@@ -173,13 +167,20 @@ VOID	Frog_DpcRunHyper(
         Status = Frog_SetupVmcs(pForgVmxEntry);
         if (!Frog_SUCCESS(Status)) {
             FrogBreak();
-            FrogPrint("Frog_SetupVmcs	Error");
+            FrogPrint("Frog_SetupVmcs Error");
             goto	_HyperInitExit;
         }
+		if (Frog_Cpu->EnableEpt)
+		{
+			Frog_InitEpt(pForgVmxEntry);
+
+		}
+
 
         pForgVmxEntry->HyperIsEnable = TRUE;
         if (__vmx_vmlaunch())
         {
+			pForgVmxEntry->HyperIsEnable = FALSE;
             VmxErrorCode = Frog_Vmx_Read(VM_INSTRUCTION_ERROR);
             FrogPrint("VmLaunch	Error = %d", VmxErrorCode);
             FrogBreak();
@@ -191,7 +192,6 @@ _HyperInitExit:
 	KeSignalCallDpcDone(SystemArgument1);
 
 }
-
 
 
 FrogRetCode 	Frog_EnableHyper() 
@@ -223,7 +223,6 @@ FrogRetCode 	Frog_EnableHyper()
 	return	FrogSuccess;
 
 }
-
 
 
 //--------------------------------------Unload
