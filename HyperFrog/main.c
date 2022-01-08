@@ -1,4 +1,4 @@
-#include "PublicHeader.h"
+#include "public.h"
 
 void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 	FrogRetCode	Status;
@@ -12,19 +12,28 @@ void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 
 NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
 	pDriverObj->DriverUnload = UnloadDriver;
-	FrogRetCode	Status = FrogSuccess;
-
+	FrogRetCode	fStatus = FrogSuccess;
+	NTSTATUS		nStatus = STATUS_SUCCESS;
+	
+	FrogBreak();
+	nStatus = InitComm(pDriverObj);
+	if (!NT_SUCCESS(nStatus))
+	{
+        FrogBreak();
+        FrogPrint("InitComm Error");
+        return STATUS_UNSUCCESSFUL;
+	}
     //ÉêÇë ForgVmxRegion
     if (!Forg_AllocateForgVmxRegion()) {
         FrogBreak();
-        FrogPrint("ForgAllocatePoolError");
+        FrogPrint("ForgAllocatePool Error");
         return STATUS_UNSUCCESSFUL;
     }
 
     g_FrogCpu->EnableEpt = TRUE;
     g_FrogCpu->EnableHookMsr = FALSE;
 
-    Status = Frog_EnableHyper();
+	fStatus = Frog_EnableHyper();
 
 	return	STATUS_SUCCESS;
 }

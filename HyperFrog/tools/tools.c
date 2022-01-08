@@ -1,10 +1,9 @@
-#include "PublicHeader.h"
+#include "public.h"
 
 void	Frog_PrintfEx(char *format, ...) {
 	NTSTATUS	Status = STATUS_SUCCESS;
-	char buf[412] = { 0 };
+	char buf[1024] = { 0 };
 	va_list args = NULL;
-
 
 	va_start(args, format);
 	Status = RtlStringCchVPrintfA(buf, RTL_NUMBER_OF(buf), format,args);

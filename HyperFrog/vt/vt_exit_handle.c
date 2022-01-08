@@ -1,4 +1,4 @@
-#include "PublicHeader.h"
+#include "public.h"
 
 void    vmexit_readmsr_handle(pFrog_GuestContext	Context);
 void    vmexit_cpuid_handle(pFrog_GuestContext	    Context);

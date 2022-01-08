@@ -171,7 +171,7 @@
       <TreatWarningAsError>false</TreatWarningAsError>
       <PreprocessorDefinitions>DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
-      <AdditionalIncludeDirectories>vt/hook;include;vt;tools;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../Global;comm;vt/hook;include;vt;tools;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
@@ -186,7 +186,7 @@
     <ClCompile>
       <TreatWarningAsError>false</TreatWarningAsError>
       <PreprocessorDefinitions>RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>vt/hook;include;vt;tools;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../Global;comm;vt/hook;include;vt;tools;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -223,6 +223,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="comm\comm.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="tools\tools.c" />
     <ClCompile Include="vt\hook\msr_hook.c" />
@@ -231,8 +232,9 @@
     <ClCompile Include="vt\vt_help.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="comm\comm.h" />
     <ClInclude Include="include\ExportFunction.h" />
-    <ClInclude Include="include\PublicHeader.h" />
+    <ClInclude Include="include\public.h" />
     <ClInclude Include="tools\tools.h" />
     <ClInclude Include="vt\hook\msr_hook.h" />
     <ClInclude Include="vt\ia32.h" />
@@ -241,7 +243,7 @@
     <ClInclude Include="vt\vt_help.h" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="include\msr_hook_kisystemcall64.asm" />
+    <MASM Include="vt\hook\msr_hook_kisystemcall64.asm" />
     <MASM Include="vt\vt.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

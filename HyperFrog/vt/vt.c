@@ -1,4 +1,4 @@
-#include "PublicHeader.h"
+#include "public.h"
 
 pFrogCpu g_FrogCpu = NULL;
 
