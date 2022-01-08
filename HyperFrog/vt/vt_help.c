@@ -102,12 +102,6 @@ Forg_AllocateForgVmxRegion()
 	return TRUE;
 }
 
-BOOLEAN
-Frog_AllocateFrogEptMem()
-{
-
-}
-
 void	
 Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry)
 {
@@ -385,4 +379,159 @@ Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9)
     Asm_VmxCall(Rcx, Rdx, R8, R9);
 
     return TRUE;
+}
+
+void
+SetEptMemoryByMttrInfo(
+    pFrogVmx pForgVmxEntry,
+    int i,
+    int j
+)
+{
+    ULONG_PTR LargePageAddress = 0;
+    ULONG_PTR CandidateMemoryType = 0;
+
+    LargePageAddress = pForgVmxEntry->VmxEptInfo.PDT[i][j].PageFrameNumber * _2MB;
+    /* 默认WB内存类型 */
+    CandidateMemoryType = MTRR_TYPE_WB;
+
+    for (ULONG k = 0; k < Frog_Cpu->NumberOfEnableMemRangs; k++)
+    {
+        ///See: 11.11.9 Large Page Size Considerations
+        // 第一个页面设置为UC类型(因为其有可能为MMIO所需要)
+        // 预留4KB地址I/O (UC)
+        if (pForgVmxEntry->VmxEptInfo.PDT[i][j].PageFrameNumber == 0) {
+            CandidateMemoryType = MTRR_TYPE_UC;
+            break;
+        }
+
+        // 检测内存是否启用
+        if (Frog_Cpu->MtrrRange[k].Enabled != FALSE)
+        {
+            ///See: 11.11.4 Range Size and Alignment Requirement
+            // 检查大页面物理地址的边界,如果单物理页面为4KB,则改写入口为2MB的MemType
+            // If this page's address is below or equal to the max physical address of the range
+            if ((LargePageAddress <= Frog_Cpu->MtrrRange[k].PhysicalAddressMax) &&
+                // And this page's last address is above or equal to the base physical address of the range
+                ((LargePageAddress + _2MB - 1) >= Frog_Cpu->MtrrRange[k].PhysicalAddressMin))
+            {
+                ///See:11.11.4.1 MTRR Precedences
+                // 改写备选内存类型
+                CandidateMemoryType = Frog_Cpu->MtrrRange[k].Type;
+                // UC类型优先
+                if (CandidateMemoryType == MTRR_TYPE_UC) {
+                    break;
+                }
+            }
+        }
+    }
+    pForgVmxEntry->VmxEptInfo.PDT[i][j].MemoryType = CandidateMemoryType;
+
+}
+
+void
+Frog_BuildEpt(pFrogVmx pForgVmxEntry)
+{
+    //只是映射了一个PML4页，一个PML4 = 512GB，完全足够了
+    pForgVmxEntry->VmxEptInfo.PML4T[0].ReadAccess = 1;
+    pForgVmxEntry->VmxEptInfo.PML4T[0].WriteAccess = 1;
+    pForgVmxEntry->VmxEptInfo.PML4T[0].ExecuteAccess = 1;
+    pForgVmxEntry->VmxEptInfo.PML4T[0].PageFrameNumber = MmGetPhysicalAddress(&pForgVmxEntry->VmxEptInfo.PDPT).QuadPart / PAGE_SIZE; // 获取 PFN
+
+    for (int i = 0; i < PDPTE_ENTRY_COUNT; i++)
+    {
+        // 设置PDPT的页面数量
+        pForgVmxEntry->VmxEptInfo.PDPT[i].Flags = 0;
+        pForgVmxEntry->VmxEptInfo.PDPT[i].ReadAccess = 1;
+        pForgVmxEntry->VmxEptInfo.PDPT[i].WriteAccess = 1;
+        pForgVmxEntry->VmxEptInfo.PDPT[i].ExecuteAccess = 1;
+        pForgVmxEntry->VmxEptInfo.PDPT[i].PageFrameNumber = MmGetPhysicalAddress(&pForgVmxEntry->VmxEptInfo.PDT[i][0]).QuadPart / PAGE_SIZE; // 获取 PFN
+    }
+
+    for (int i = 0; i < PDPTE_ENTRY_COUNT; i++)
+    {
+        // 构建PDT的每2M为一个页面
+        for (int j = 0; j < PDE_ENTRY_COUNT; j++)
+        {
+            pForgVmxEntry->VmxEptInfo.PDT[i][j].Flags = 0;
+            pForgVmxEntry->VmxEptInfo.PDT[i][j].ReadAccess = 1;
+            pForgVmxEntry->VmxEptInfo.PDT[i][j].WriteAccess = 1;
+            pForgVmxEntry->VmxEptInfo.PDT[i][j].ExecuteAccess = 1;
+            pForgVmxEntry->VmxEptInfo.PDT[i][j].LargePage = 1;
+            pForgVmxEntry->VmxEptInfo.PDT[i][j].PageFrameNumber = ((uintptr_t)i * 512) + j;
+
+            //根据MTRR设置内存类型
+            SetEptMemoryByMttrInfo(pForgVmxEntry, i, j);
+        }
+    }
+}
+
+void
+Frog_SetEptp(pFrogVmx pForgVmxEntry)
+{
+    Ia32VmxEptVpidCapMsr ia32Eptinfo = { __readmsr(kIa32VmxEptVpidCap) };
+
+
+    if (ia32Eptinfo.fields.support_page_walk_length4)
+    {
+        pForgVmxEntry->VmxEptInfo.VmxEptp.PageWalkLength = 3; // 设置为 4 级页表
+    }
+
+    if (ia32Eptinfo.fields.support_uncacheble_memory_type)
+    {
+        pForgVmxEntry->VmxEptInfo.VmxEptp.MemoryType = MEMORY_TYPE_UNCACHEABLE; // UC(无缓存类型的内存)
+    }
+
+    if (ia32Eptinfo.fields.support_write_back_memory_type)
+    {
+        pForgVmxEntry->VmxEptInfo.VmxEptp.MemoryType = MEMORY_TYPE_WRITE_BACK;  // WB(可回写类型的内存, 支持则优先设置)
+    }
+
+    if (ia32Eptinfo.fields.support_accessed_and_dirty_flag) // Ept dirty 标志位是否有效
+    {
+        pForgVmxEntry->VmxEptInfo.VmxEptp.EnableAccessAndDirtyFlags = TRUE;
+    }
+    else
+    {
+        pForgVmxEntry->VmxEptInfo.VmxEptp.EnableAccessAndDirtyFlags = FALSE;
+    }
+
+    pForgVmxEntry->VmxEptInfo.VmxEptp.PageFrameNumber = MmGetPhysicalAddress(&(pForgVmxEntry->VmxEptInfo.PML4T[0])).QuadPart / PAGE_SIZE;
+
+}
+
+void
+Frog_GetMtrrInfo()
+{
+    MTRR_CAPABILITIES MtrrCapabilities = { 0 };
+    MTRR_VARIABLE_BASE MtrrBase = { 0 };
+    MTRR_VARIABLE_MASK MtrrMask = { 0 };
+    unsigned long bit = 0;
+
+    MtrrCapabilities.AsUlonglong = __readmsr(kIa32MtrrCap); /* 获取MTRR相关信息 */
+    for (int i = 0; i < MtrrCapabilities.u.VarCnt; i++)
+    {
+        MtrrBase.AsUlonglong = __readmsr(kIa32MtrrPhysBaseN + i * 2);
+        MtrrMask.AsUlonglong = __readmsr(kIa32MtrrPhysMaskN + i * 2);
+
+        //检查是否启用
+        if (MtrrMask.u.Enabled) /*mtrrData[i].Enabled != FALSE && */
+        {
+            PFrogMtrrFange   MtrrDesciptor = &Frog_Cpu->MtrrRange[Frog_Cpu->NumberOfEnableMemRangs++];
+            MtrrDesciptor->Type = (UINT32)MtrrBase.u.Type;
+            MtrrDesciptor->Enabled = (UINT32)MtrrMask.u.Enabled;
+
+            //设置基地址
+            MtrrDesciptor->PhysicalAddressMin = MtrrBase.u.PhysBase * PAGE_SIZE;
+
+            _BitScanForward64(&bit, MtrrMask.u.PhysMask * PAGE_SIZE);
+            MtrrDesciptor->PhysicalAddressMax = MtrrDesciptor->PhysicalAddressMin + ((1ULL << bit) - 1);
+
+            if (Frog_Cpu->MtrrRange[i].Type == MTRR_TYPE_WB) {
+                Frog_Cpu->NumberOfEnableMemRangs--;
+            }
+        }
+
+    }
+
 }

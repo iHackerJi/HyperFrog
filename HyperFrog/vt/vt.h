@@ -21,6 +21,14 @@ typedef struct _VmxIoBitMap {
     PVOID	BitMapB;
 }VmxIoBitMap, *pVmxIoBitMap;
 
+typedef struct _FrogVmxEptInfo
+{
+    Eptp		   VmxEptp;
+    DECLSPEC_ALIGN(PAGE_SIZE) EPML4E	PML4T[PML4E_ENTRY_COUNT];
+    DECLSPEC_ALIGN(PAGE_SIZE) EPDPTE	PDPT[PDPTE_ENTRY_COUNT];
+    DECLSPEC_ALIGN(PAGE_SIZE) EPDE_2MB  PDT[PDPTE_ENTRY_COUNT][PDE_ENTRY_COUNT];
+}FrogVmxEptInfo, * PFrogVmxEptInfo;
+
 typedef struct _FrogVmx {
 	ULONG64			OrigCr4;
     ULONG64            OrigCr0;
@@ -38,13 +46,15 @@ typedef struct _FrogVmx {
 	ULONG			ProcessorNumber;
 }FrogVmx, *pFrogVmx;
 
-typedef struct _FrogVmxEptInfo
+
+
+typedef struct _FrogMtrrFange
 {
-	Eptp		   VmxEptp;
-    DECLSPEC_ALIGN(PAGE_SIZE) EPML4E	PML4T[PML4E_ENTRY_COUNT];
-    DECLSPEC_ALIGN(PAGE_SIZE) EPDPTE	PDPT[PDPTE_ENTRY_COUNT];
-    DECLSPEC_ALIGN(PAGE_SIZE) EPDE_2MB  PDT[PDPTE_ENTRY_COUNT][PDE_ENTRY_COUNT];
-}FrogVmxEptInfo,*PFrogVmxEptInfo;
+    UINT32 Enabled;
+    UINT32 Type;
+    UINT64 PhysicalAddressMin;
+    UINT64 PhysicalAddressMax;
+}FrogMtrrFange,*PFrogMtrrFange;
 
 typedef struct _FrogCpu {
 	ULONG							ProcessOrNumber;
@@ -52,6 +62,8 @@ typedef struct _FrogCpu {
 	pFrogVmx						pForgVmxEntrys;
     ULONG64						KernelCr3;
     BOOLEAN                        EnableEpt;
+	FrogMtrrFange					MtrrRange[96];
+	ULONG							NumberOfEnableMemRangs;
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {

@@ -14,6 +14,21 @@
 #define _2MB              (2 * 1024 * 1024)
 #define _4KB              (1024)
 
+#define MTRR_TYPE_UC            0
+#define MTRR_TYPE_USWC          1
+#define MTRR_TYPE_WT            4
+#define MTRR_TYPE_WP            5
+#define MTRR_TYPE_WB            6
+#define MTRR_TYPE_MAX           7
+
+#define MEMORY_TYPE_UNCACHEABLE     0x00000000
+#define MEMORY_TYPE_WRITE_COMBINING 0x00000001
+#define MEMORY_TYPE_WRITE_THROUGH   0x00000004
+#define MEMORY_TYPE_WRITE_PROTECTED 0x00000005
+#define MEMORY_TYPE_WRITE_BACK      0x00000006
+#define MEMORY_TYPE_INVALID         0x000000FF
+
+
 //-------------Enum
 
 typedef enum _VECTOR_EXCEPTION
@@ -47,6 +62,36 @@ typedef		enum _CpuidIndex
 	EnumECX,
 	EnumEDX
 }CpuidIndex,*pCpuidIndex;
+
+typedef struct _MTRR_VARIABLE_BASE
+{
+    union
+    {
+        struct
+        {
+            UINT64 Type : 8;
+            UINT64 Reserved : 4;
+            UINT64 PhysBase : 36;
+            UINT64 Reserved2 : 16;
+        } u;
+        UINT64 AsUlonglong;
+    };
+} MTRR_VARIABLE_BASE, * PMTRR_VARIABLE_BASE;
+
+typedef struct _MTRR_VARIABLE_MASK
+{
+    union
+    {
+        struct
+        {
+            UINT64 Reserved : 11;
+            UINT64 Enabled : 1;
+            UINT64 PhysMask : 36;
+            UINT64 Reserved2 : 16;
+        } u;
+        UINT64 AsUlonglong;
+    };
+} MTRR_VARIABLE_MASK, * PMTRR_VARIABLE_MASK;
 
 typedef enum _Msr {
 	kIa32ApicBase = 0x01B,
@@ -524,8 +569,6 @@ typedef union _Ia32MtrrDefTypeRegister
     UINT64 Flags;
 } Ia32MtrrDefTypeRegister, *pIa32MtrrDefTypeRegister;
 
-
-
 typedef union _FlagReg {
     ULONG_PTR all;
     struct {
@@ -554,7 +597,6 @@ typedef union _FlagReg {
     } fields;
 }FlagReg, *pFlagReg;
 
-
 typedef union _CrxVmExitQualification
 {
     ULONG_PTR all;
@@ -570,7 +612,6 @@ typedef union _CrxVmExitQualification
         ULONG_PTR reserved3 : 32;         //!< [32:63]
     }Bits;
 }CrxVmExitQualification, *pCrxVmExitQualification;
-
 
 typedef union _Ia32VmxBasicMsr {
 	unsigned __int64 all;
@@ -588,7 +629,6 @@ typedef union _Ia32VmxBasicMsr {
 		unsigned reserved3 : 8;               //!< [56:63]
 	} fields;
 }Ia32VmxBasicMsr,*pIa32VmxBasicMsr;
-
 
 typedef union _VmxPinBasedControls
 {
@@ -678,7 +718,6 @@ typedef union _VmxSecondaryProcessorBasedControls {
 	} fields;
 }VmxSecondaryProcessorBasedControls,*pVmxSecondaryProcessorBasedControls;
 
-
 typedef union _VmxProcessorBasedControls {
 	unsigned int all;
 	struct {
@@ -750,7 +789,6 @@ typedef union _CpuFeaturesEcx {
 	} fields;
 }CpuFeaturesEcx,*pCpuFeaturesEcx;
 
-
 typedef union _Cr4 {
 	ULONG_PTR all;
 	struct {
@@ -777,7 +815,6 @@ typedef union _Cr4 {
 	} fields;
 }Cr4,*pCr4;
 
-
 typedef union _Cr0 {
 	ULONG_PTR all;
 	struct {
@@ -798,7 +835,6 @@ typedef union _Cr0 {
 	} fields;
 }Cr0,*pCr0; 
 
-
 typedef union _Ia32FeatureControlMsr {
 	unsigned __int64 all;
 	struct {
@@ -813,7 +849,6 @@ typedef union _Ia32FeatureControlMsr {
 	} fields;
 }Ia32FeatureControlMsr,*pIa32FeatureControlMsr;
 
-
 typedef union _EptPointer {
 	struct {
 		ULONG64 memory_type : 3;                      //!< [0:2]
@@ -826,9 +861,6 @@ typedef union _EptPointer {
 	ULONG64 all;
 }EptPointer, *pEptPointer;
 
-
-
-
 typedef union _SEGMENT_SELECTOR
 {
 	struct
@@ -840,7 +872,6 @@ typedef union _SEGMENT_SELECTOR
 
 	UINT16 Flags;
 }SEGMENT_SELECTOR,*pSEGMENT_SELECTOR;
-
 
 typedef union _KGDTENTRY64
 {
@@ -885,7 +916,6 @@ typedef union _KGDTENTRY64
 
 } KGDTENTRY64, *PKGDTENTRY64;
 
-
 // See: Format of Exit Reason in Basic VM-Exit Information
 // 定义 Exit reason 字段 (参考 【处理器虚拟化技术】(第3.10.1.1节))
 typedef union _VmxExitInfo
@@ -901,7 +931,6 @@ typedef union _VmxExitInfo
 		unsigned short vm_entry_failure : 1;       //!< [31]	为1时, 表明是在VM-entry过程中引发VM-exit
 	}fields;
 }VmxExitInfo, *pVmxExitInfo;
-
 
 enum VmxExitReason
 {
@@ -1046,6 +1075,24 @@ enum VmxExitReason
 //----------------------------------
 
 //struct
+
+typedef struct _MTRR_CAPABILITIES
+{
+    union
+    {
+        struct
+        {
+            UINT64 VarCnt : 8;
+            UINT64 FixedSupported : 1;
+            UINT64 Reserved : 1;
+            UINT64 WcSupported : 1;
+            UINT64 SmrrSupported : 1;
+            UINT64 Reserved_2 : 52;
+        } u;
+        UINT64 AsUlonglong;
+    };
+} MTRR_CAPABILITIES, * PMTRR_CAPABILITIES;
+
 typedef struct _VmControlStructure {
 	unsigned long revision_identifier;
 	unsigned long vmx_abort_indicator;

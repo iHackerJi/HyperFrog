@@ -3,18 +3,21 @@
 
 pFrogCpu		Frog_Cpu = NULL;
 
+//EnableHyper
 FrogRetCode
 Frog_SetupVmcs(pFrogVmx pForgVmxEntry) 
 {
 	ULONG														UseTrueMsrs = 0;
 	FrogRetCode												Status = FrogSuccess;
-	Ia32VmxBasicMsr										VmxBasicMsr = { 0 };
+	Ia32VmxBasicMsr										    VmxBasicMsr = { 0 };
 	VmxPinBasedControls									VmPinBasedControls = { 0 };
 	VmxProcessorBasedControls						VmProcessorBasedControls = { 0 };
 	VmxSecondaryProcessorBasedControls		VmSecondaryProcessorBasedControls = { 0 };
 	VmxVmentryControls									VmVmentryControls = { 0 };
 	VmxmexitControls										VmExitControls = { 0 };
 	KPROCESSOR_STATE									HostState = pForgVmxEntry->HostState;
+    ULONG64                                                    VirtualProcessorId = pForgVmxEntry->ProcessorNumber;
+    VirtualProcessorId++;
 
 	Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, 0xFFFFFFFFFFFFFFFF);
 	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
@@ -32,6 +35,11 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
     VmSecondaryProcessorBasedControls.fields.enable_rdtscp = TRUE;
     VmSecondaryProcessorBasedControls.fields.enable_invpcid = TRUE;
     VmSecondaryProcessorBasedControls.fields.enable_xsaves_xstors = TRUE;
+    if (Frog_Cpu->EnableEpt)
+    {
+        VmSecondaryProcessorBasedControls.fields.enable_ept = TRUE;  // 开启 EPT
+         VmSecondaryProcessorBasedControls.fields.enable_vpid = TRUE; // 开启 VPID
+    }
 	VmSecondaryProcessorBasedControls.all = Frog_VmxAdjustControlValue(kIa32VmxProcBasedCtls2, VmSecondaryProcessorBasedControls.all);
 
 	//Vm-Entry控制域
@@ -94,15 +102,14 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
 
 
+    if (Frog_Cpu->EnableEpt)
+    {
+        Status |= Frog_Vmx_Write(EPT_POINTER, pForgVmxEntry->VmxEptInfo.VmxEptp.Flags);
+        Status |= Frog_Vmx_Write(VIRTUAL_PROCESSOR_ID, VirtualProcessorId);
+    }
+
 
 	return Status;
-}
-
-FrogRetCode
-Frog_InitEpt(pFrogVmx pForgVmxEntry)
-{
-	pForgVmxEntry->VmxEptInfo.PML4T;
-
 }
 
 VOID	Frog_DpcRunHyper(
@@ -134,6 +141,12 @@ VOID	Frog_DpcRunHyper(
             FrogBreak();
             FrogPrint("AllocateHyperRegion	Error");
             goto	_HyperInitExit;
+        }
+
+        if (Frog_Cpu->EnableEpt)
+        {
+            Frog_BuildEpt(pForgVmxEntry);//初始化EPT内存
+            Frog_SetEptp(pForgVmxEntry);
         }
 
         //设置VMCS、VMXON版本号
@@ -170,12 +183,6 @@ VOID	Frog_DpcRunHyper(
             FrogPrint("Frog_SetupVmcs Error");
             goto	_HyperInitExit;
         }
-		if (Frog_Cpu->EnableEpt)
-		{
-			Frog_InitEpt(pForgVmxEntry);
-
-		}
-
 
         pForgVmxEntry->HyperIsEnable = TRUE;
         if (__vmx_vmlaunch())
@@ -197,7 +204,6 @@ _HyperInitExit:
 FrogRetCode 	Frog_EnableHyper() 
 {
 	NTSTATUS	Status = STATUS_SUCCESS;
-
     //申请 ForgVmxRegion
     if (!Forg_AllocateForgVmxRegion()) {
         FrogBreak();
@@ -218,6 +224,8 @@ FrogRetCode 	Frog_EnableHyper()
 	//设置MSR的位以支持虚拟化
 	Frog_SetMsrBitToEnableHyper();
 
+    //获取MTRR信息
+    Frog_GetMtrrInfo();
 	KeGenericCallDpc(Frog_DpcRunHyper, NULL);
 
 	return	FrogSuccess;
@@ -225,7 +233,7 @@ FrogRetCode 	Frog_EnableHyper()
 }
 
 
-//--------------------------------------Unload
+//--------------------------------------DisableHype
 
 
 FrogRetCode	Frog_DisableHyper() 

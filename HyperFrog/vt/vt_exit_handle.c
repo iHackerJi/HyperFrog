@@ -2,6 +2,76 @@
 #include "vt_help.h"
 EXTERN_C	pFrogCpu		Frog_Cpu;
 
+void			vmexit_readmsr_handle(pFrog_GuestContext	Context);
+void			vmexit_cpuid_handle(pFrog_GuestContext	    Context);
+void         vmexit_craccess_handle(pFrog_GuestContext	Context);
+void        vmexit_vmcall_handle(pFrog_GuestContext	Context);
+
+EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
+{
+    VmxExitInfo		ExitInfo = { 0 };
+    ULONG64		Rip = 0;
+    ULONG64		Rsp = 0;
+    ULONG64		ExitinstructionsLength = 0;
+    FlagReg           GuestRflag = { 0 };
+
+    ExitInfo.all = (ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
+    FrogBreak();
+    switch (ExitInfo.fields.reason)
+    {
+    case	ExitCpuid:
+        vmexit_cpuid_handle(Context);
+        break;
+    case ExitInvd:
+        __wbinvd();
+        break;
+    case ExitGetSec://暂时不处理
+
+        break;
+    case ExitXsetbv:
+        _xsetbv((ULONG32)Context->Rcx, MAKEQWORD(Context->Rax, Context->Rdx));
+        break;
+    case ExitMsrRead:
+        vmexit_readmsr_handle(Context);
+        break;
+    case ExitCrAccess:
+        vmexit_craccess_handle(Context);
+        break;
+    case ExitVmcall:
+        vmexit_vmcall_handle(Context);
+        break;
+    case ExitInvept:
+    case ExitInvvpid:
+    case  ExitVmclear:
+    case  ExitVmlaunch:
+    case  ExitVmptrld:
+    case  ExitVmptrst:
+    case  ExitVmread:
+    case  ExitVmresume:
+    case  ExitVmwrite:
+    case  ExitVmoff:
+    case  ExitVmon:
+    {
+        GuestRflag.all = Frog_Vmx_Read(GUEST_RFLAGS);
+        GuestRflag.fields.cf = 1;//拒绝嵌套
+        Frog_Vmx_Write(GUEST_RFLAGS, GuestRflag.all);
+        break;
+    }
+    default:
+        break;
+    }
+
+    //正常处理流程
+    Rip = Frog_Vmx_Read(GUEST_RIP);
+    Rsp = Frog_Vmx_Read(GUEST_RSP);
+    ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
+    Rip += ExitinstructionsLength;
+
+    Frog_Vmx_Write(GUEST_RIP, Rip);
+    Frog_Vmx_Write(GUEST_RSP, Rsp);
+    return;
+}
+
 void			vmexit_readmsr_handle(pFrog_GuestContext	Context)
 {
 	ULONG64		MsrValue = 0;
@@ -114,67 +184,3 @@ void        vmexit_vmcall_handle(pFrog_GuestContext	Context)
 
 }
 
-EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
-{
-	VmxExitInfo		ExitInfo = { 0 };
-	ULONG64		Rip = 0;
-	ULONG64		Rsp = 0;
-	ULONG64		ExitinstructionsLength = 0;
-    FlagReg           GuestRflag = { 0 };
-   
-	ExitInfo.all = 	(ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
-
-	switch (ExitInfo.fields.reason)
-	{
-		case	ExitCpuid:
-			vmexit_cpuid_handle(Context);
-			break;
-		case ExitInvd:
-			__wbinvd();
-			break;
-		case ExitGetSec://暂时不处理
-			
-			break;
-		case ExitXsetbv:
-			_xsetbv((ULONG32)Context->Rcx, MAKEQWORD(Context->Rax, Context->Rdx));
-			break;
-		case ExitMsrRead:
-			vmexit_readmsr_handle(Context);
-			break;
-        case ExitCrAccess:
-            vmexit_craccess_handle(Context);
-            break;
-        case ExitVmcall:
-            vmexit_vmcall_handle(Context);
-            break;
-		case ExitInvept:
-		case ExitInvvpid:
-		case  ExitVmclear:
-		case  ExitVmlaunch:
-		case  ExitVmptrld:
-		case  ExitVmptrst:
-		case  ExitVmread:
-		case  ExitVmresume:
-		case  ExitVmwrite:
-		case  ExitVmoff:
-		case  ExitVmon:
-        {
-            GuestRflag.all = Frog_Vmx_Read(GUEST_RFLAGS);
-            GuestRflag.fields.cf = 1;//拒绝嵌套
-            Frog_Vmx_Write(GUEST_RFLAGS, GuestRflag.all);
-            break;
-        }
-		default:
-			break;
-	}
-
-    //正常处理流程
-	Rip =	Frog_Vmx_Read(GUEST_RIP);
-	Rsp =   Frog_Vmx_Read(GUEST_RSP);
-	ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
-	Rip += ExitinstructionsLength;
-
-	Frog_Vmx_Write(GUEST_RIP, Rip);
-	Frog_Vmx_Write(GUEST_RSP, Rsp);
-    return;
-}

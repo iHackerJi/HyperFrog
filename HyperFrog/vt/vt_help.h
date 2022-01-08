@@ -23,3 +23,8 @@ void		Frog_SetMsrBitToEnableHyper();
 FrogRetCode		Frog_FullVmxSelector(KPROCESSOR_STATE		HostState);
 
 BOOLEAN     Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9);
+
+void Frog_GetMtrrInfo();
+void Frog_SetEptp(pFrogVmx pForgVmxEntry);
+void Frog_BuildEpt(pFrogVmx pForgVmxEntry);
+void SetEptMemoryByMttrInfo(pFrogVmx pForgVmxEntry, int i,int j);
