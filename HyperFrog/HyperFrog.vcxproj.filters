@@ -20,25 +20,34 @@
     <Filter Include="Driver Files\VT">
       <UniqueIdentifier>{365bae1f-608b-4b17-91eb-2572c201e5ff}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Driver Files\VT\Vt_Source">
-      <UniqueIdentifier>{d163d5e7-df72-4c6f-a168-04258a3a822e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Driver Files\VT\Vt_Header">
-      <UniqueIdentifier>{10b6430a-982c-4c2a-b5e7-7ec5582dcaff}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Driver Files\Tools">
       <UniqueIdentifier>{a3ae259f-9dd7-4188-8c04-3d9e26b5cca7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Driver Files\VT\Hook">
+      <UniqueIdentifier>{206b3728-0f3e-4722-b9a4-d64a7fbf3acd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Driver Files\VT\header">
+      <UniqueIdentifier>{10b6430a-982c-4c2a-b5e7-7ec5582dcaff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Driver Files\VT\source">
+      <UniqueIdentifier>{d163d5e7-df72-4c6f-a168-04258a3a822e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Driver Files\VT\Hook\MsrHook">
+      <UniqueIdentifier>{7b3b1e48-1374-4da2-9cdf-a077ee5f3a48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\include">
+      <UniqueIdentifier>{1e2380f7-f258-45a9-bbca-4663d4460b43}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vt\vt.c">
-      <Filter>Driver Files\VT\Vt_Source</Filter>
+      <Filter>Driver Files\VT\source</Filter>
     </ClCompile>
     <ClCompile Include="vt\vt_help.c">
-      <Filter>Driver Files\VT\Vt_Source</Filter>
+      <Filter>Driver Files\VT\source</Filter>
     </ClCompile>
     <ClCompile Include="vt\vt_exit_handle.c">
-      <Filter>Driver Files\VT\Vt_Source</Filter>
+      <Filter>Driver Files\VT\source</Filter>
     </ClCompile>
     <ClCompile Include="tools\tools.c">
       <Filter>Driver Files\Tools</Filter>
@@ -46,33 +55,42 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vt\hook\msr_hook.c">
+      <Filter>Driver Files\VT\Hook\MsrHook</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vt\ia32.h">
-      <Filter>Driver Files\VT\Vt_Header</Filter>
+      <Filter>Driver Files\VT\header</Filter>
     </ClInclude>
     <ClInclude Include="vt\vt.h">
-      <Filter>Driver Files\VT\Vt_Header</Filter>
-    </ClInclude>
-    <ClInclude Include="ExportFunction.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Global.h">
-      <Filter>Header Files</Filter>
+      <Filter>Driver Files\VT\header</Filter>
     </ClInclude>
     <ClInclude Include="vt\vt_asm.h">
-      <Filter>Driver Files\VT\Vt_Header</Filter>
+      <Filter>Driver Files\VT\header</Filter>
     </ClInclude>
     <ClInclude Include="vt\vt_help.h">
-      <Filter>Driver Files\VT\Vt_Header</Filter>
+      <Filter>Driver Files\VT\header</Filter>
     </ClInclude>
     <ClInclude Include="tools\tools.h">
       <Filter>Driver Files\Tools</Filter>
     </ClInclude>
+    <ClInclude Include="include\ExportFunction.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="vt\hook\msr_hook.h">
+      <Filter>Driver Files\VT\Hook\MsrHook</Filter>
+    </ClInclude>
+    <ClInclude Include="include\PublicHeader.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="vt\vt.asm">
-      <Filter>Driver Files\VT\Vt_Source</Filter>
+      <Filter>Driver Files\VT\source</Filter>
+    </MASM>
+    <MASM Include="include\msr_hook_kisystemcall64.asm">
+      <Filter>Driver Files\VT\Hook\MsrHook</Filter>
     </MASM>
   </ItemGroup>
 </Project>

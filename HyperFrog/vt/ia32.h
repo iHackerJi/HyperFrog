@@ -1,6 +1,4 @@
 #pragma once
-#include <ntifs.h>
-
 
 #define		SEGMENT_GDT	0
 #define		SEGMENT_LDT    1
@@ -1075,6 +1073,7 @@ enum VmxExitReason
 //----------------------------------
 
 //struct
+
 
 typedef struct _MTRR_CAPABILITIES
 {

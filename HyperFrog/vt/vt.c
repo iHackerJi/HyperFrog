@@ -1,7 +1,6 @@
-#include "vt.h"
-#include "vt_help.h"
+#include "PublicHeader.h"
 
-pFrogCpu		Frog_Cpu = NULL;
+pFrogCpu g_FrogCpu = NULL;
 
 //EnableHyper
 FrogRetCode
@@ -35,7 +34,7 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
     VmSecondaryProcessorBasedControls.fields.enable_rdtscp = TRUE;
     VmSecondaryProcessorBasedControls.fields.enable_invpcid = TRUE;
     VmSecondaryProcessorBasedControls.fields.enable_xsaves_xstors = TRUE;
-    if (Frog_Cpu->EnableEpt)
+    if (g_FrogCpu->EnableEpt)
     {
         VmSecondaryProcessorBasedControls.fields.enable_ept = TRUE;  // 开启 EPT
          VmSecondaryProcessorBasedControls.fields.enable_vpid = TRUE; // 开启 VPID
@@ -81,7 +80,7 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 	//CR3
 	Status|= Frog_Vmx_Write(GUEST_CR3, HostState.SpecialRegisters.Cr3);
 	//因为使用了KeGenericCallDpc函数进行多核同步操作，这个函数会把我们的例程通过DPC投放到别的进程里面，可能CR3会被改变，所以CR3在之前需要保存
-	Status|= Frog_Vmx_Write(HOST_CR3, Frog_Cpu->KernelCr3);
+	Status|= Frog_Vmx_Write(HOST_CR3, g_FrogCpu->KernelCr3);
 
 	//CR4
 	Status|=Frog_Vmx_Write(GUEST_CR4, HostState.SpecialRegisters.Cr4);
@@ -102,7 +101,7 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
 
 
-    if (Frog_Cpu->EnableEpt)
+    if (g_FrogCpu->EnableEpt)
     {
         Status |= Frog_Vmx_Write(EPT_POINTER, pForgVmxEntry->VmxEptInfo.VmxEptp.Flags);
         Status |= Frog_Vmx_Write(VIRTUAL_PROCESSOR_ID, VirtualProcessorId);
@@ -121,7 +120,7 @@ VOID	Frog_DpcRunHyper(
 	//初始化VMX区域
 	FrogRetCode	Status = FrogSuccess;
 	ULONG			CpuNumber = KeGetCurrentProcessorNumber();
-	pFrogVmx		pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CpuNumber];
+	pFrogVmx		pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[CpuNumber];
 	size_t				VmxErrorCode = 0;
 
 	//每个CPU核都有个CR4、CR0感觉还是全都设置了好
@@ -143,7 +142,7 @@ VOID	Frog_DpcRunHyper(
             goto	_HyperInitExit;
         }
 
-        if (Frog_Cpu->EnableEpt)
+        if (g_FrogCpu->EnableEpt)
         {
             Frog_BuildEpt(pForgVmxEntry);//初始化EPT内存
             Frog_SetEptp(pForgVmxEntry);
@@ -156,7 +155,7 @@ VOID	Frog_DpcRunHyper(
         if (__vmx_on(&pForgVmxEntry->VmxOnAreaPhysicalAddr))
         {
             FrogBreak();
-            FrogPrint("Vmxon	Error");
+            FrogPrint("Vmxon	 Error");
             goto	_HyperInitExit;
         }
 
@@ -200,19 +199,10 @@ _HyperInitExit:
 
 }
 
-
 FrogRetCode 	Frog_EnableHyper() 
 {
 	NTSTATUS	Status = STATUS_SUCCESS;
-    //申请 ForgVmxRegion
-    if (!Forg_AllocateForgVmxRegion()) {
-        FrogBreak();
-        FrogPrint("ForgAllocatePoolError");
-        return ForgAllocatePoolError;
-    }
-
-    Frog_Cpu->KernelCr3 = __readcr3();//DPC递投的方式会导致进入到不同的进程环境中，所以需要保存内核的CR3
-    Frog_Cpu->EnableEpt = TRUE;
+    g_FrogCpu->KernelCr3 = __readcr3();//DPC递投的方式会导致进入到不同的进程环境中，所以需要保存内核的CR3
 
 	//查询是否支持虚拟化
 	if (!Frog_IsSupportHyper()) {
@@ -226,6 +216,9 @@ FrogRetCode 	Frog_EnableHyper()
 
     //获取MTRR信息
     Frog_GetMtrrInfo();
+
+    Frog_Hook();
+
 	KeGenericCallDpc(Frog_DpcRunHyper, NULL);
 
 	return	FrogSuccess;
@@ -252,7 +245,7 @@ FrogRetCode	Frog_DisableHyper()
         KeSetSystemGroupAffinityThread(&affinity, &Origaffinity);
     
         pFrogVmx		pForgVmxEntry = NULL;
-        pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[ProcessIndex];
+        pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[ProcessIndex];
     
         if (Frog_VmCall(FrogExitTag, 0, 0, 0))
         {
@@ -262,9 +255,10 @@ FrogRetCode	Frog_DisableHyper()
         }
         KeRevertToUserGroupAffinityThread(&Origaffinity);
     }
-    __writemsr(kIa32FeatureControl, Frog_Cpu->OrigFeatureControlMsr.all);
-    if (Frog_Cpu->pForgVmxEntrys)		FrogExFreePool(Frog_Cpu->pForgVmxEntrys);
-	if (Frog_Cpu)		FrogExFreePool(Frog_Cpu);
+    Frog_Hook();
+    __writemsr(kIa32FeatureControl, g_FrogCpu->OrigFeatureControlMsr.all);
+    if (g_FrogCpu->pForgVmxEntrys)		FrogExFreePool(g_FrogCpu->pForgVmxEntrys);
+	if (g_FrogCpu)		FrogExFreePool(g_FrogCpu);
 
 	return	FrogSuccess;
 }

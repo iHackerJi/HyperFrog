@@ -1,5 +1,4 @@
 #pragma once
-#include <ntifs.h>
 
 typedef struct _KDESCRIPTOR
 {
@@ -45,6 +44,7 @@ typedef struct _KPROCESSOR_STATE
     KSPECIAL_REGISTERS SpecialRegisters;
     CONTEXT ContextFrame;
 } KPROCESSOR_STATE, * PKPROCESSOR_STATE;
+
 
 
 NTKERNELAPI

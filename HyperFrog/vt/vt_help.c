@@ -1,5 +1,4 @@
-#include "vt_help.h"
-EXTERN_C pFrogCpu		Frog_Cpu;
+#include "PublicHeader.h"
 
 BOOLEAN
 CPUID_VmxIsSupport()
@@ -36,7 +35,7 @@ EPT_VmxIsSupport()
     Ia32VmxEptVpidCapMsr                VpidRegister = { 0 };
     Ia32MtrrDefTypeRegister              MTRRDefType = { 0 };
 
-    if (Frog_Cpu->EnableEpt)
+    if (g_FrogCpu->EnableEpt)
     {
         VpidRegister.all = __readmsr(kIa32VmxEptVpidCap);
         MTRRDefType.Flags = __readmsr(kIa32MtrrDefType);
@@ -92,12 +91,16 @@ Forg_AllocateForgVmxRegion()
 	ULONG		CountOfProcessor = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 	ULONG		FrogsVmxSize = sizeof(FrogVmx) * CountOfProcessor;
 
-	Frog_Cpu = FrogExAllocatePool(sizeof(FrogCpu));
-	Frog_Cpu->ProcessOrNumber = CountOfProcessor;
-	Frog_Cpu->pForgVmxEntrys = FrogExAllocatePool(FrogsVmxSize);
+	g_FrogCpu = FrogExAllocatePool(sizeof(FrogCpu));
+	g_FrogCpu->ProcessOrNumber = CountOfProcessor;
+	g_FrogCpu->pForgVmxEntrys = FrogExAllocatePool(FrogsVmxSize);
 
-	if (Frog_Cpu->pForgVmxEntrys == NULL)
+	if (g_FrogCpu == NULL && g_FrogCpu->pForgVmxEntrys == NULL)
+	{
+		if (g_FrogCpu) FrogExFreePool(g_FrogCpu);
+		if (g_FrogCpu->pForgVmxEntrys) FrogExFreePool(g_FrogCpu->pForgVmxEntrys);
 		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -213,7 +216,7 @@ Frog_SetMsrBitToEnableHyper()
 	//此位要置1否则不能执行VMXON
 	Ia32FeatureControlMsr VmxFeatureControl;
 	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
-	Frog_Cpu->OrigFeatureControlMsr.all = VmxFeatureControl.all;
+	g_FrogCpu->OrigFeatureControlMsr.all = VmxFeatureControl.all;
 	
 	VmxFeatureControl.fields.lock = TRUE;
 	__writemsr(kIa32FeatureControl, VmxFeatureControl.all);
@@ -395,7 +398,7 @@ SetEptMemoryByMttrInfo(
     /* 默认WB内存类型 */
     CandidateMemoryType = MTRR_TYPE_WB;
 
-    for (ULONG k = 0; k < Frog_Cpu->NumberOfEnableMemRangs; k++)
+    for (ULONG k = 0; k < g_FrogCpu->NumberOfEnableMemRangs; k++)
     {
         ///See: 11.11.9 Large Page Size Considerations
         // 第一个页面设置为UC类型(因为其有可能为MMIO所需要)
@@ -406,18 +409,18 @@ SetEptMemoryByMttrInfo(
         }
 
         // 检测内存是否启用
-        if (Frog_Cpu->MtrrRange[k].Enabled != FALSE)
+        if (g_FrogCpu->MtrrRange[k].Enabled != FALSE)
         {
             ///See: 11.11.4 Range Size and Alignment Requirement
             // 检查大页面物理地址的边界,如果单物理页面为4KB,则改写入口为2MB的MemType
             // If this page's address is below or equal to the max physical address of the range
-            if ((LargePageAddress <= Frog_Cpu->MtrrRange[k].PhysicalAddressMax) &&
+            if ((LargePageAddress <= g_FrogCpu->MtrrRange[k].PhysicalAddressMax) &&
                 // And this page's last address is above or equal to the base physical address of the range
-                ((LargePageAddress + _2MB - 1) >= Frog_Cpu->MtrrRange[k].PhysicalAddressMin))
+                ((LargePageAddress + _2MB - 1) >= g_FrogCpu->MtrrRange[k].PhysicalAddressMin))
             {
                 ///See:11.11.4.1 MTRR Precedences
                 // 改写备选内存类型
-                CandidateMemoryType = Frog_Cpu->MtrrRange[k].Type;
+                CandidateMemoryType = g_FrogCpu->MtrrRange[k].Type;
                 // UC类型优先
                 if (CandidateMemoryType == MTRR_TYPE_UC) {
                     break;
@@ -517,7 +520,7 @@ Frog_GetMtrrInfo()
         //检查是否启用
         if (MtrrMask.u.Enabled) /*mtrrData[i].Enabled != FALSE && */
         {
-            PFrogMtrrFange   MtrrDesciptor = &Frog_Cpu->MtrrRange[Frog_Cpu->NumberOfEnableMemRangs++];
+            PFrogMtrrFange   MtrrDesciptor = &g_FrogCpu->MtrrRange[g_FrogCpu->NumberOfEnableMemRangs++];
             MtrrDesciptor->Type = (UINT32)MtrrBase.u.Type;
             MtrrDesciptor->Enabled = (UINT32)MtrrMask.u.Enabled;
 
@@ -527,11 +530,30 @@ Frog_GetMtrrInfo()
             _BitScanForward64(&bit, MtrrMask.u.PhysMask * PAGE_SIZE);
             MtrrDesciptor->PhysicalAddressMax = MtrrDesciptor->PhysicalAddressMin + ((1ULL << bit) - 1);
 
-            if (Frog_Cpu->MtrrRange[i].Type == MTRR_TYPE_WB) {
-                Frog_Cpu->NumberOfEnableMemRangs--;
+            if (g_FrogCpu->MtrrRange[i].Type == MTRR_TYPE_WB) {
+				g_FrogCpu->NumberOfEnableMemRangs--;
             }
         }
 
     }
 
+}
+
+
+void
+Frog_Hook()
+{
+    if (g_FrogCpu->EnableHookMsr)
+    {
+        Frog_MsrHookEnable();
+    }
+}
+
+void
+Frog_UnHook()
+{
+    if (g_FrogCpu->EnableHookMsr)
+    {
+        Frog_MsrHookDisable();
+    }
 }

@@ -1,12 +1,9 @@
 #pragma once
-#include <intrin.h>
-#include "../tools/tools.h"
-#include "ia32.h"
-#include "../ExportFunction.h"
-#include "vt_asm.h"
 
 #define		FrogTag	'Frog'
-#define        FrogExitTag  'Exit'
+#define     FrogExitTag  'Exit'
+#define     FrogHookMsrTag  'HMsr'
+
 #define		HostStackSize PAGE_SIZE * 6
 #define		Frog_SUCCESS(Status) (((FrogRetCode)(Status)) >= 0)
 #define		FrogExFreePool(mem) 	ExFreePoolWithTag(mem, FrogTag)
@@ -64,6 +61,8 @@ typedef struct _FrogCpu {
     BOOLEAN                        EnableEpt;
 	FrogMtrrFange					MtrrRange[96];
 	ULONG							NumberOfEnableMemRangs;
+
+	BOOLEAN						EnableHookMsr;
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {

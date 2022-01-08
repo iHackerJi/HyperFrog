@@ -1,8 +1,4 @@
 #pragma once
-#include <ntifs.h>
-#include <vadefs.h>
-#include <stdarg.h>
-#include <ntstrsafe.h>
 
 void	Frog_PrintfEx(char *format, ...);
 

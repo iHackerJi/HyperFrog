@@ -1,5 +1,4 @@
 #pragma once
-#include <ntifs.h>
 
 void	VmxEntryPointer();
 void  Asm_VmxCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9);

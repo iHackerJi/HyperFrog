@@ -1,11 +1,9 @@
-#include "vt.h"
-#include "vt_help.h"
-EXTERN_C	pFrogCpu		Frog_Cpu;
+#include "PublicHeader.h"
 
-void			vmexit_readmsr_handle(pFrog_GuestContext	Context);
-void			vmexit_cpuid_handle(pFrog_GuestContext	    Context);
-void         vmexit_craccess_handle(pFrog_GuestContext	Context);
-void        vmexit_vmcall_handle(pFrog_GuestContext	Context);
+void    vmexit_readmsr_handle(pFrog_GuestContext	Context);
+void    vmexit_cpuid_handle(pFrog_GuestContext	    Context);
+void    vmexit_craccess_handle(pFrog_GuestContext	Context);
+void    vmexit_vmcall_handle(pFrog_GuestContext	Context);
 
 EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 {
@@ -16,7 +14,7 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
     FlagReg           GuestRflag = { 0 };
 
     ExitInfo.all = (ULONG32)Frog_Vmx_Read(VM_EXIT_REASON);
-    FrogBreak();
+
     switch (ExitInfo.fields.reason)
     {
     case	ExitCpuid:
@@ -72,16 +70,27 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
     return;
 }
 
-void			vmexit_readmsr_handle(pFrog_GuestContext	Context)
+void    vmexit_readmsr_handle(pFrog_GuestContext	Context)
 {
-	ULONG64		MsrValue = 0;
+    ULONG64		MsrValue = 0;
+    switch (Context->Rcx)
+    {
+        case kIa32Lstar:
+        {
+            MsrValue = g_orgKisystemcall64;//·ÀÖ¹PG
+            break;
+        }
+        default:
+        {
+            MsrValue = (ULONG64)__readmsr((ULONG)Context->Rcx);
+            break;
+        }
+    }
+    Context->Rax = LODWORD(MsrValue);
+    Context->Rdx = HIDWORD(MsrValue);
 
-	MsrValue = (ULONG64)__readmsr((ULONG)Context->Rcx);
-
-	Context->Rax = LODWORD(MsrValue);
-	Context->Rdx = HIDWORD(MsrValue);
 }
-void			vmexit_cpuid_handle(pFrog_GuestContext	    Context)
+void    vmexit_cpuid_handle(pFrog_GuestContext	    Context)
 {
     CpuId		CpuidInfo = { 0 };
     switch (Context->Rax)
@@ -104,7 +113,7 @@ void			vmexit_cpuid_handle(pFrog_GuestContext	    Context)
 
 	return;
 }
-void         vmexit_craccess_handle(pFrog_GuestContext	Context)
+void    vmexit_craccess_handle(pFrog_GuestContext	Context)
 {
     CrxVmExitQualification          CrxQualification = { 0 };
     PULONG64                            RegContext = (PULONG64)Context;
@@ -138,7 +147,7 @@ void         vmexit_craccess_handle(pFrog_GuestContext	Context)
 
 
 }
-void        vmexit_vmcall_handle(pFrog_GuestContext	Context)
+void    vmexit_vmcall_handle(pFrog_GuestContext	Context)
 {
 
     switch (Context->Rcx)
@@ -155,7 +164,7 @@ void        vmexit_vmcall_handle(pFrog_GuestContext	Context)
             ULONG64         Guest_Fs_Base = 0;
 
             CurrentProcessor = KeGetCurrentProcessorNumber();
-            pForgVmxEntry = &Frog_Cpu->pForgVmxEntrys[CurrentProcessor];
+            pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[CurrentProcessor];
 
             Rip = Frog_Vmx_Read(GUEST_RIP);
             Rsp = Frog_Vmx_Read(GUEST_RSP);
@@ -179,7 +188,6 @@ void        vmexit_vmcall_handle(pFrog_GuestContext	Context)
             Asm_Jmp(Rip, Rsp);
             break;
         }
-
     }
 
 }
