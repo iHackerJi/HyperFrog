@@ -538,10 +538,15 @@ bool	driver::LoadDriver(char* ServiceName, char* DriverName)
         hSCManager = OpenSCManagerA(NULL, NULL, SC_MANAGER_ALL_ACCESS);
         if (hSCManager)
         {
-            hService = CreateServiceA(hSCManager, ServiceName,
-                ServiceName, SERVICE_ALL_ACCESS,
-                SERVICE_KERNEL_DRIVER, SERVICE_DEMAND_START,
-                SERVICE_ERROR_IGNORE, DriverPath,
+            hService = CreateServiceA(
+                hSCManager, 
+                ServiceName,
+                ServiceName, 
+                SERVICE_ALL_ACCESS,
+                SERVICE_KERNEL_DRIVER, 
+                SERVICE_DEMAND_START,
+                SERVICE_ERROR_IGNORE,
+                DriverPath,
                 NULL, NULL, NULL, NULL, NULL
             ); 
             if (!hService)
@@ -567,7 +572,6 @@ bool	driver::LoadDriver(char* ServiceName, char* DriverName)
 
     if (hSCManager)	CloseServiceHandle(hSCManager);
 
-
     return result;
 }
 
@@ -584,6 +588,8 @@ bool	driver::UnLoadDriver() {
         tools::FrogPrintfEx("%s DeleteService Error %d \r\n", __FUNCTION__, GetLastError());
         return	false;
     }
+    if (hService)	        CloseServiceHandle(hService);
+
     tools::FrogPrintfEx("DriverUnload Success \r\n");
     return true;
 
