@@ -265,7 +265,6 @@ bool symbol::EnumSymbols(char* ModuleName, EnumSymbolType	Type, PVOID  NeedList)
     unsigned long ModuleSize = 0;
     PLOADED_IMAGE	 pImage = NULL;
 
-
     //取出系统模块地址
     if (!GetSystemDirectoryA(SystemDir, MAX_PATH))
     {
@@ -456,7 +455,7 @@ bool	symbol::InitSymbolFunctionList()
             tools::FrogPrintfEx("%s DeviceIoControl  CTL_GetFunListInfo Error %d \r\n", __FUNCTION__, GetLastError());
             break;
         }
-
+        result = true;
     } while (false);
 
     if (pfunInfo) free(pfunInfo);
@@ -533,6 +532,7 @@ bool	driver::LoadDriver(char* ServiceName, char* DriverName)
         tools::FrogPrintfEx("%s sprintf Error %d \r\n", __FUNCTION__, GetLastError());
         return FALSE;
     }
+    __debugbreak();
     do 
     {
         hSCManager = OpenSCManagerA(NULL, NULL, SC_MANAGER_ALL_ACCESS);
@@ -543,20 +543,18 @@ bool	driver::LoadDriver(char* ServiceName, char* DriverName)
                 SERVICE_KERNEL_DRIVER, SERVICE_DEMAND_START,
                 SERVICE_ERROR_IGNORE, DriverPath,
                 NULL, NULL, NULL, NULL, NULL
-            );
-            if (hService == NULL)
-            {
-                tools::FrogPrintfEx("CreateServiceA Error = %d", GetLastError());
-                break;
-            }
-
-            hService = OpenServiceA(hSCManager, ServiceName, SERVICE_ALL_ACCESS);
+            ); 
             if (!hService)
             {
-                CloseServiceHandle(hSCManager);
-                return FALSE;
+                hService = OpenServiceA(hSCManager, ServiceName, SERVICE_ALL_ACCESS);
+                if (!hService)
+                {
+                    CloseServiceHandle(hSCManager);
+                    tools::FrogPrintfEx("CloseServiceHandle Error = %d", GetLastError());
+                    break;
+                }
             }
-            
+
             if (!StartServiceA(hService, 0, NULL))
             {
                 tools::FrogPrintfEx("%s StartServiceA Error %d \r\n", __FUNCTION__, GetLastError());
