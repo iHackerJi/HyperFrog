@@ -2,7 +2,61 @@
 
 ULONG64 g_orgKisystemcall64 = 0;
 
-void Frog_MsrHookEnable()
+void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
+{
+    PIMAGE_DOS_HEADER  pDos = (PIMAGE_DOS_HEADER)pNtdll;
+    PIMAGE_NT_HEADERS  pNts = (PIMAGE_NT_HEADERS)(pDos + pDos->e_lfanew);
+    PIMAGE_DATA_DIRECTORY  pDataDir = (PIMAGE_NT_HEADERS64)(pNts)->OptionalHeader.DataDirectory;
+    ULONG ExportDirRva = pDataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+    ULONG ExportDirSize = pDataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
+    ULONG ExportDirOffset = RvaToOffset(pNts, ExportDirRva, NtdllSize);
+
+    PIMAGE_EXPORT_DIRECTORY ExportDir = (PIMAGE_EXPORT_DIRECTORY)(pNtdll + ExportDirOffset);
+    ULONG NumberOfNames = ExportDir->NumberOfNames;
+    ULONG AddressOfFunctionsOffset = RvaToOffset(pNts, ExportDir->AddressOfFunctions, NtdllSize);
+    ULONG AddressOfNameOrdinalsOffset = RvaToOffset(pNts, ExportDir->AddressOfNameOrdinals, NtdllSize);
+    ULONG AddressOfNamesOffset = RvaToOffset(pNts, ExportDir->AddressOfNames, NtdllSize);
+
+    ULONG* AddressOfFunctions = (ULONG*)(pNtdll + AddressOfFunctionsOffset);
+    USHORT* AddressOfNameOrdinals = (USHORT*)(pNtdll + AddressOfNameOrdinalsOffset);
+    ULONG* AddressOfNames = (ULONG*)(pNtdll + AddressOfNamesOffset);
+
+    for (ULONG i = 0; i < NumberOfNames; i++)
+    {
+        ULONG CurrentNameOffset = RvaToOffset(pNts, AddressOfNames[i], NtdllSize);
+        if (CurrentNameOffset == 0)
+            continue;
+        const char* CurrentName = (const char*)(pNts + CurrentNameOffset);
+        ULONG CurrentFunctionRva = AddressOfFunctions[AddressOfNameOrdinals[i]];
+        if (CurrentFunctionRva >= ExportDirRva && CurrentFunctionRva < ExportDirRva + ExportDirSize)
+            continue; //we ignore forwarded exports
+
+        int j = 0;
+        while (TRUE)
+        {
+            if (strcmp(CurrentName, g_MsrHookTable[j].functionName) == 0)  //compare the export name to the requested export
+            {
+                ULONG  ExportOffset = RvaToOffset(pNts, CurrentFunctionRva, NtdllSize);
+                char* ExportData = ExportOffset + pNtdll;
+
+                for (int i = 0; i < 32 && ExportOffset + i < NtdllSize; i++)
+                {
+                    if (ExportData[i] == 0xC2 || ExportData[i] == 0xC3)  //RET
+                        break;
+                    if (ExportData[i] == 0xB8)  //mov eax,X
+                    {
+                        g_MsrHookTable[i].Index = *(int*)(ExportData + i + 1);
+                        break;
+                    }
+                    break;
+                }
+                j++;
+            }
+        }
+    }
+}
+
+BOOLEAN  Frog_MsrHookEnable()
 {
     g_orgKisystemcall64 = __readmsr(kIa32Lstar);
      __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
@@ -14,46 +68,61 @@ void Frog_MsrHookEnable()
      NTSTATUS nStatus = NULL;
      char* pNtdll = NULL;
      ULONG NtdllSize = 0;
+     BOOLEAN result = FALSE;
 
      RtlInitUnicodeString(&uFileName, L"\\SystemRoot\\system32\\ntdll.dll");
      InitializeObjectAttributes(&ObjectAttributes, &uFileName,
          OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
          NULL, NULL);
 
-     nStatus = ZwCreateFile(&hFileHandle,
-         GENERIC_READ,
-         &ObjectAttributes,
-         &IoStatusBlock, NULL,
-         FILE_ATTRIBUTE_NORMAL,
-         FILE_SHARE_READ,
-         FILE_OPEN,
-         FILE_SYNCHRONOUS_IO_NONALERT,
-         NULL, 0);
-     if (NT_SUCCESS(nStatus))
+     do 
      {
+         nStatus = ZwCreateFile(&hFileHandle,
+             GENERIC_READ,
+             &ObjectAttributes,
+             &IoStatusBlock, NULL,
+             FILE_ATTRIBUTE_NORMAL,
+             FILE_SHARE_READ,
+             FILE_OPEN,
+             FILE_SYNCHRONOUS_IO_NONALERT,
+             NULL, 0);
+
+         if (!NT_SUCCESS(nStatus))  break;
+
          FILE_STANDARD_INFORMATION StandardInformation = { 0 };
          nStatus = ZwQueryInformationFile(hFileHandle, &IoStatusBlock, &StandardInformation, sizeof(FILE_STANDARD_INFORMATION), FileStandardInformation);
-         if (NT_SUCCESS(nStatus))
+         if (!NT_SUCCESS(nStatus))  break;
+
+         NtdllSize = StandardInformation.EndOfFile.LowPart;
+         pNtdll = FrogExAllocatePool(NtdllSize);
+
+         LARGE_INTEGER ByteOffset;
+         ByteOffset.LowPart = ByteOffset.HighPart = 0;
+         nStatus = ZwReadFile(
+             hFileHandle,
+             NULL, NULL, NULL,
+             &IoStatusBlock,
+             pNtdll,
+             NtdllSize,
+             &ByteOffset, NULL);
+
+         if (!NT_SUCCESS(nStatus))
          {
-             NtdllSize = StandardInformation.EndOfFile.LowPart;
-             pNtdll = FrogExAllocatePool(NtdllSize);
-
-             LARGE_INTEGER ByteOffset;
-             ByteOffset.LowPart = ByteOffset.HighPart = 0;
-             nStatus = ZwReadFile(
-                 hFileHandle,
-                 NULL, NULL, NULL,
-                 &IoStatusBlock,
-                 pNtdll,
-                 NtdllSize,
-                 &ByteOffset, NULL);
-
-             if (!NT_SUCCESS(nStatus))
-             {
-                 FrogExFreePool(pNtdll);
-             }
+             FrogExFreePool(pNtdll);
+             break;
          }
-     }
+         
+         Frog_GetSsdtIndex(pNtdll, NtdllSize);
+
+
+
+         result = TRUE;
+     } while (FALSE);
+
+
+
+
+
 
 
 

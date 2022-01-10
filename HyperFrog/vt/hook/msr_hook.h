@@ -17,6 +17,7 @@ typedef struct _MsrHookTable
     char functionName[256];
     PVOID hookFunction;
     PVOID* orgFunctionAddr;
+    ULONG Index;
 }MsrHookTable, *pMsrHookTable;
 
 static	 MsrHookTable	g_MsrHookTable[] =

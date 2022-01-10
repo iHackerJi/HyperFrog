@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <ntstrsafe.h>
 #include <intrin.h>
-
+#include <ntimage.h>
 #define Frog_MaxListFlag		"_MaxList"
 
 
