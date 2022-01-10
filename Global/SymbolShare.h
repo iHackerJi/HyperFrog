@@ -12,7 +12,6 @@
 #define CTL_GetTypeListSize				MYIOCTRL_CODE(3)
 #define CTL_GetTypeListInfo				MYIOCTRL_CODE(4)
 #define CTL_SendTypeListInfo			MYIOCTRL_CODE(5)
-
 #define CTL_SymbolIsSuccess				MYIOCTRL_CODE(7)
 
 #define		Symbol_NameLength			0x50

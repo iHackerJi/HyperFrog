@@ -104,6 +104,20 @@ NTSTATUS DispatchIoctrl(PDEVICE_OBJECT pObject, PIRP pIrp)
         }
         break;
     }
+    case CTL_SymbolIsSuccess:
+    {
+        CpuId Data = { 0 };
+        NTSTATUS Status = STATUS_UNSUCCESSFUL;
+        __cpuid((int*)&Data, FrogTag);
+        if (Data.eax == FrogTag) {
+            //ÒÑ¿ªÆôÐéÄâ»¯
+            Status = STATUS_SUCCESS;
+            Frog_CallRoutine(g_pDriverObj);
+        }
+        memcpy(pOutputBuff, &Status, sizeof(Status));
+        Info = sizeof(Status);
+        break;
+    }
     default:
         Frog_PrintfEx("Unknown iocontrol\n");
         break;
@@ -151,4 +165,10 @@ NTSTATUS	InitComm(PDRIVER_OBJECT pDriverObj)
     pDriverObj->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DispatchIoctrl;
 
     return Status;
+}
+
+void CommUnload()
+{
+    if (g_pDriverObj) IoDeleteDevice(g_pDriverObj->DeviceObject);
+    IoDeleteSymbolicLink(&g_SymbolName);
 }

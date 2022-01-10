@@ -1,17 +1,18 @@
 #pragma once
 
 NTSTATUS	InitComm(PDRIVER_OBJECT pDriverObj);
+void CommUnload();
 
 typedef void	(*ObKillProcessType)(
     PEPROCESS Process
     );
 
-PVOID					NONO_NtMapUserPhysicalPagesScatter;
-PVOID					NONO_NtCallbackReturn;
-PVOID					NONO_NtSuspendThread;
-PVOID					NONO_IopInvalidDeviceRequest;
-PVOID					NONO_NtUserGetThreadState;
-PVOID					NONO_NtUserPeekMessage;
+PVOID Pfn_NtMapUserPhysicalPagesScatter;
+PVOID Pfn_NtCallbackReturn;
+PVOID Pfn_NtSuspendThread;
+PVOID Pfn_IopInvalidDeviceRequest;
+PVOID Pfn_NtUserGetThreadState;
+PVOID Pfn_NtUserPeekMessage;
 ObKillProcessType		NONO_ObKillProcess;
 
 
@@ -23,10 +24,10 @@ static	SymbolGetFunctionInfoList	g_GetFunctionInfoList[] =
     {
         "ntoskrnl.exe",
         {
-            {"NtMapUserPhysicalPagesScatter",&NONO_NtMapUserPhysicalPagesScatter},
-            {"NtCallbackReturn",&NONO_NtCallbackReturn},
-            {"NtSuspendThread",&NONO_NtSuspendThread},
-            {"IopInvalidDeviceRequest",&NONO_IopInvalidDeviceRequest},
+            {"NtMapUserPhysicalPagesScatter",&Pfn_NtMapUserPhysicalPagesScatter},
+            {"NtCallbackReturn",&Pfn_NtCallbackReturn},
+            {"NtSuspendThread",&Pfn_NtSuspendThread},
+            {"IopInvalidDeviceRequest",&Pfn_IopInvalidDeviceRequest},
             {"ObKillProcess",(PVOID*)&NONO_ObKillProcess},
             {Symbol_MaxListFlag,0}
         }
@@ -34,26 +35,26 @@ static	SymbolGetFunctionInfoList	g_GetFunctionInfoList[] =
     {
         "win32k.sys",
         {
-            {"NtUserGetThreadState",&NONO_NtUserGetThreadState},
-            {"NtUserPeekMessage",&NONO_NtUserPeekMessage},
+            {"NtUserGetThreadState",&Pfn_NtUserGetThreadState},
+            {"NtUserPeekMessage",&Pfn_NtUserPeekMessage},
             {Symbol_MaxListFlag,0}
         }
     }
 };
 
 
-ULONG64	CreateTime;
-ULONG64	ThreadLock;
-ULONG64	RundownProtect;
+ULONG64	Offset_Ethread_CreateTime;
+ULONG64	Offset_Ethread_ThreadLock;
+ULONG64	Offset_Ethread_RundownProtect;
 
 static	 SymbolGetTypeOffsetList	g_GetTypeOffsetInfoList[] =
 {
     {
         "ntoskrnl.exe",
         {
-            {"_ETHREAD","CreateTime",&CreateTime},
-            {"_ETHREAD","ThreadLock",&ThreadLock},
-            {"_ETHREAD","RundownProtect",&RundownProtect},
+            {"_ETHREAD","CreateTime",&Offset_Ethread_CreateTime},
+            {"_ETHREAD","ThreadLock",&Offset_Ethread_ThreadLock},
+            {"_ETHREAD","RundownProtect",&Offset_Ethread_RundownProtect},
             {Symbol_MaxListFlag,Symbol_MaxListFlag,0}
         }
     }

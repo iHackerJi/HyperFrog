@@ -48,12 +48,4 @@
       <Filter>头文件\Tools</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\x64\Debug\dbghelp.dll">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\x64\Debug\symsrv.dll">
-      <Filter>资源文件</Filter>
-    </None>
-  </ItemGroup>
 </Project>

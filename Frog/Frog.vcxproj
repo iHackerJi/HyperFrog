@@ -142,6 +142,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <UACExecutionLevel>HighestAvailable</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -154,10 +155,6 @@
     <ClInclude Include="Frog.h" />
     <ClInclude Include="include\public.h" />
     <ClInclude Include="Tools.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\x64\Debug\dbghelp.dll" />
-    <None Include="..\x64\Debug\symsrv.dll" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,7 +15,7 @@
 #include "Tools.h"
 
 #define DEVICE_NAME "\\\\.\\HyperFrog"
-
+#define SYMBOL_NAME "FrogSymbol"
 namespace global
 {
     extern HANDLE	hFile;

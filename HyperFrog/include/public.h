@@ -20,3 +20,5 @@ extern ULONG64 g_orgKisystemcall64;
 
 #define DEVICE_NAME L"\\Device\\HyperFrog"		
 #define SYMBOL_NAME L"\\??\\HyperFrog"
+
+void Frog_CallRoutine(PDRIVER_OBJECT pObj);

@@ -54,6 +54,20 @@ bool	comm::initComm()
     return true;
 }
 
+bool	comm::SendSuccessSignal()
+{
+    DWORD outLeng = 0;
+    NTSTATUS Status;
+    if (DeviceIoControl(global::hFile, CTL_SymbolIsSuccess, NULL, 0, &Status, sizeof(Status), &outLeng, NULL))
+    {
+        if (Status==STATUS_SUCCESS)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 BOOL CALLBACK symbol::EnumSymFunctionRoutine(
     PSYMBOL_INFO pSymInfo,
     unsigned long SymbolSize,
@@ -254,7 +268,7 @@ bool symbol::EnumSymbols(char* ModuleName, EnumSymbolType	Type, PVOID  NeedList)
 
     char SystemDir[MAX_PATH] = { 0 };
     char SymbolPath[MAX_PATH] = { 0 };
-    char Symbol[MAX_PATH] = "NonoSymbol";
+    char Symbol[MAX_PATH] = SYMBOL_NAME;
 
     PRTL_PROCESS_MODULES	pModule = NULL;
     bool result;
@@ -278,7 +292,7 @@ bool symbol::EnumSymbols(char* ModuleName, EnumSymbolType	Type, PVOID  NeedList)
         return false;
     }
 
-    if (-1 == sprintf_s(SymbolPath, sizeof(ModuleNamePath),"%s\\%s", SystemDir, Symbol))
+    if (-1 == sprintf_s(SymbolPath, sizeof(SymbolPath),"%s\\%s", global::CurrentDirName, Symbol))
     {
         tools::FrogPrintfEx("%s sprintf Error %d \r\n", __FUNCTION__, GetLastError());
         return false;
@@ -532,7 +546,6 @@ bool	driver::LoadDriver(char* ServiceName, char* DriverName)
         tools::FrogPrintfEx("%s sprintf Error %d \r\n", __FUNCTION__, GetLastError());
         return FALSE;
     }
-    __debugbreak();
     do 
     {
         hSCManager = OpenSCManagerA(NULL, NULL, SC_MANAGER_ALL_ACCESS);

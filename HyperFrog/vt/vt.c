@@ -217,8 +217,6 @@ FrogRetCode 	Frog_EnableHyper()
     //获取MTRR信息
     Frog_GetMtrrInfo();
 
-    Frog_Hook();
-
 	KeGenericCallDpc(Frog_DpcRunHyper, NULL);
 
 	return	FrogSuccess;
@@ -255,7 +253,7 @@ FrogRetCode	Frog_DisableHyper()
         }
         KeRevertToUserGroupAffinityThread(&Origaffinity);
     }
-    Frog_Hook();
+    Frog_UnHook();
     __writemsr(kIa32FeatureControl, g_FrogCpu->OrigFeatureControlMsr.all);
     if (g_FrogCpu->pForgVmxEntrys)		FrogExFreePool(g_FrogCpu->pForgVmxEntrys);
 	if (g_FrogCpu)		FrogExFreePool(g_FrogCpu);

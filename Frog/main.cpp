@@ -1,15 +1,41 @@
 #include "public.h"
+BOOL WINAPI HandlerRoutine(
+    _In_ DWORD dwCtrlType
+)
+{
+    if (CTRL_CLOSE_EVENT == dwCtrlType)
+    {
+        driver::UnLoadDriver();
+    }
+    return true;
+}
 
+DWORD WINAPI CheckHyperEnable(
+    _In_ LPVOID lpParameter
+)
+{
+    while (true)
+    {
+        if (comm::SendSuccessSignal())
+        {
+            break;
+        }
+        Sleep(1000);
+    }
+    return 0;
+}
 int main()
 {
     bool result = false;
     char	ServiceName[] = "HyperFrog";
     char	DriverName[] = "HyperFrog.sys";
-
+    HANDLE hThread = NULL;
+    SetConsoleCtrlHandler(HandlerRoutine, true);
     do 
     {
         if (!driver::LoadDriver(ServiceName, DriverName))	
             break;
+
 
         tools::FrogPrintfEx("Driverload Success \r\n");
         if (comm::initComm())
@@ -24,10 +50,10 @@ int main()
         result = true;
     } while (false);
 
-    Sleep(1000);
-    driver::UnLoadDriver();
+    hThread = CreateThread(NULL, 0, CheckHyperEnable, NULL, 0, NULL);
+    WaitForSingleObject(hThread, INFINITE);
 
+    tools::FrogPrintfEx("HyperFrog is Init! \r\n");
     system("pause");
-
     return 0;
 }

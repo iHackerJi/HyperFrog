@@ -2,13 +2,19 @@
 
 void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 	FrogRetCode	Status;
-	FrogBreak();
 	Status = Frog_DisableHyper();
+	CommUnload();
 	if (!Frog_SUCCESS(Status))
 	{
 		FrogBreak();
 		FrogPrint("HyperUnload Error");
 	}
+}
+
+//当VT与符号都加载成功后会调用这个函数
+void Frog_CallRoutine(PDRIVER_OBJECT pObj)
+{
+	Frog_Hook();
 }
 
 NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {

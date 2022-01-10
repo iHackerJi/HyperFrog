@@ -159,9 +159,9 @@ void    vmexit_vmcall_handle(pFrog_GuestContext	Context)
             ULONG64		Rip = 0;
             ULONG64		Rsp = 0;
             ULONG64		ExitinstructionsLength = 0;
-            ULONG64         Guest_Cr3 = 0;
-            ULONG64         Guest_Gs_Base = 0;
-            ULONG64         Guest_Fs_Base = 0;
+            ULONG64        Guest_Cr3 = 0;
+            ULONG64        Guest_Gs_Base = 0;
+            ULONG64        Guest_Fs_Base = 0;
 
             CurrentProcessor = KeGetCurrentProcessorNumber();
             pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[CurrentProcessor];

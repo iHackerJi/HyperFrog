@@ -29,6 +29,7 @@ namespace symbol
 namespace comm
 {
     bool	initComm();
+    bool	SendSuccessSignal();
 }
 
 namespace global
