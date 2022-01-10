@@ -1,12 +1,12 @@
 #pragma once
 
-BOOLEAN CPUID_VmxIsSupport();
-BOOLEAN MSR_VmxIsSupport();
-BOOLEAN CR0_VmxIsSuppor();
-BOOLEAN Frog_IsSupportHyper();
+bool CPUID_VmxIsSupport();
+bool MSR_VmxIsSupport();
+bool CR0_VmxIsSuppor();
+bool Frog_IsSupportHyper();
 
 PVOID FrogExAllocatePool(ULONG Size);
-BOOLEAN Forg_AllocateForgVmxRegion();
+bool Forg_AllocateForgVmxRegion();
 void Frog_FreeHyperRegion(pFrogVmx		pForgVmxEntry);
 FrogRetCode Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber);
 void Frog_SetHyperRegionVersion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber);
@@ -20,7 +20,7 @@ void Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry);
 void Frog_SetMsrBitToEnableHyper();
 FrogRetCode Frog_FullVmxSelector(KPROCESSOR_STATE		HostState);
 
-BOOLEAN Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9);
+bool Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9);
 
 void Frog_GetMtrrInfo();
 void Frog_SetEptp(pFrogVmx pForgVmxEntry);

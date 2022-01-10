@@ -1,12 +1,13 @@
 #include "public.h"
 
 ULONG64 g_orgKisystemcall64 = 0;
+PFN_NtOpenProcess orgNtOpenProcess;
 
 void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
 {
     PIMAGE_DOS_HEADER  pDos = (PIMAGE_DOS_HEADER)pNtdll;
-    PIMAGE_NT_HEADERS  pNts = (PIMAGE_NT_HEADERS)(pDos + pDos->e_lfanew);
-    PIMAGE_DATA_DIRECTORY  pDataDir = (PIMAGE_NT_HEADERS64)(pNts)->OptionalHeader.DataDirectory;
+    PIMAGE_NT_HEADERS64  pNts = (PIMAGE_NT_HEADERS)(pDos + pDos->e_lfanew);
+    PIMAGE_DATA_DIRECTORY  pDataDir = pNts->OptionalHeader.DataDirectory;
     ULONG ExportDirRva = pDataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
     ULONG ExportDirSize = pDataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
     ULONG ExportDirOffset = RvaToOffset(pNts, ExportDirRva, NtdllSize);
@@ -31,8 +32,7 @@ void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
         if (CurrentFunctionRva >= ExportDirRva && CurrentFunctionRva < ExportDirRva + ExportDirSize)
             continue; //we ignore forwarded exports
 
-        int j = 0;
-        while (TRUE)
+        for (int j = 0 ; j < sizeof(g_MsrHookTable) / sizeof(MsrHookTable) ; j++)
         {
             if (strcmp(CurrentName, g_MsrHookTable[j].functionName) == 0)  //compare the export name to the requested export
             {
@@ -45,7 +45,7 @@ void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
                         break;
                     if (ExportData[i] == 0xB8)  //mov eax,X
                     {
-                        g_MsrHookTable[i].Index = *(int*)(ExportData + i + 1);
+                        g_MsrHookTable[j].Index = *(int*)(ExportData + i + 1);
                         break;
                     }
                     break;
@@ -53,10 +53,11 @@ void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
                 j++;
             }
         }
+
     }
 }
 
-BOOLEAN  Frog_MsrHookEnable()
+bool  Frog_MsrHookEnable()
 {
     g_orgKisystemcall64 = __readmsr(kIa32Lstar);
      __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
@@ -65,10 +66,10 @@ BOOLEAN  Frog_MsrHookEnable()
      HANDLE hFileHandle = NULL;
      OBJECT_ATTRIBUTES ObjectAttributes = {0};
      IO_STATUS_BLOCK IoStatusBlock = {0};
-     NTSTATUS nStatus = NULL;
+     NTSTATUS nStatus = STATUS_SUCCESS;
      char* pNtdll = NULL;
      ULONG NtdllSize = 0;
-     BOOLEAN result = FALSE;
+     bool result = FALSE;
 
      RtlInitUnicodeString(&uFileName, L"\\SystemRoot\\system32\\ntdll.dll");
      InitializeObjectAttributes(&ObjectAttributes, &uFileName,
@@ -106,25 +107,16 @@ BOOLEAN  Frog_MsrHookEnable()
              NtdllSize,
              &ByteOffset, NULL);
 
-         if (!NT_SUCCESS(nStatus))
-         {
-             FrogExFreePool(pNtdll);
-             break;
-         }
-         
+         if (!NT_SUCCESS(nStatus))       break;
+
          Frog_GetSsdtIndex(pNtdll, NtdllSize);
-
-
 
          result = TRUE;
      } while (FALSE);
 
 
-
-
-
-
-
+     if (pNtdll)    FrogExFreePool(pNtdll);
+     return result;
 
 }
 

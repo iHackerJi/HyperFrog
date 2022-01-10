@@ -20,7 +20,7 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 
 	Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, 0xFFFFFFFFFFFFFFFF);
 	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
-	UseTrueMsrs = (BOOLEAN)VmxBasicMsr.fields.vmx_capability_hint;
+	UseTrueMsrs = (bool)VmxBasicMsr.fields.vmx_capability_hint;
 
 	//Pin-Based
 	VmPinBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTruePinbasedCtls : kIa32VmxPinbasedCtls, VmPinBasedControls.all);

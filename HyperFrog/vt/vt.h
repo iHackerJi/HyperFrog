@@ -29,7 +29,7 @@ typedef struct _FrogVmxEptInfo
 typedef struct _FrogVmx {
 	ULONG64			OrigCr4;
     ULONG64            OrigCr0;
-    BOOLEAN			HyperIsEnable;
+    bool			HyperIsEnable;
 	KPROCESSOR_STATE		HostState;
 
 	FrogVmxEptInfo				VmxEptInfo;
@@ -58,11 +58,11 @@ typedef struct _FrogCpu {
 	Ia32FeatureControlMsr	OrigFeatureControlMsr;
 	pFrogVmx						pForgVmxEntrys;
     ULONG64						KernelCr3;
-    BOOLEAN                        EnableEpt;
+    bool                        EnableEpt;
 	FrogMtrrFange					MtrrRange[96];
 	ULONG							NumberOfEnableMemRangs;
 
-	BOOLEAN						EnableHookMsr;
+	bool						EnableHookMsr;
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {

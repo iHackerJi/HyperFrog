@@ -3,7 +3,7 @@
 PDRIVER_OBJECT g_pDriverObj = NULL;;
 UNICODE_STRING g_DeviceName = RTL_CONSTANT_STRING(DEVICE_NAME);
 UNICODE_STRING g_SymbolName = RTL_CONSTANT_STRING(SYMBOL_NAME);
-BOOLEAN g_DeviceAndSymbolLinkDelete = FALSE;
+bool g_DeviceAndSymbolLinkDelete = FALSE;
 
 NTSTATUS DispatchCommon(PDEVICE_OBJECT pObject, PIRP pIrp)
 {

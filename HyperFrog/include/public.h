@@ -6,7 +6,7 @@
 #include <intrin.h>
 #include <ntimage.h>
 #define Frog_MaxListFlag		"_MaxList"
-
+#define  bool BOOLEAN
 
 #include "ExportFunction.h"
 #include "tools.h"

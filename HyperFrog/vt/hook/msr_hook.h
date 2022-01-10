@@ -1,5 +1,5 @@
 #pragma once
-void Frog_MsrHookEnable();
+bool Frog_MsrHookEnable();
 void Frog_MsrHookDisable();
 void FakeKiSystemCall64();
 
@@ -10,7 +10,8 @@ NTSTATUS HookNtOpenProcess(
     PCLIENT_ID         ClientId
 );
 
-//PFN_NtOpenProcess orgNtOpenProcess;
+
+extern PFN_NtOpenProcess orgNtOpenProcess;
 
 typedef struct _MsrHookTable
 {
@@ -25,11 +26,6 @@ static	 MsrHookTable	g_MsrHookTable[] =
     {
         "NtOpenProcess",
         (PVOID)HookNtOpenProcess,
-       // (PVOID*)&orgNtOpenProcess
-    },
-    {
-        Frog_MaxListFlag,
-        NULL,
-        NULL
+        (PVOID*)&orgNtOpenProcess
     }
 };

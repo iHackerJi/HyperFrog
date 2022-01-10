@@ -1,6 +1,6 @@
 #include "public.h"
 
-BOOLEAN
+bool
 CPUID_VmxIsSupport()
 {
 
@@ -17,7 +17,7 @@ CPUID_VmxIsSupport()
 	return	TRUE;
 }
 
-BOOLEAN
+bool
 MSR_VmxIsSupport() 
 {
 
@@ -29,7 +29,7 @@ MSR_VmxIsSupport()
 	return	FALSE;
 }
 
-BOOLEAN         
+bool         
 EPT_VmxIsSupport()
 {
     Ia32VmxEptVpidCapMsr                VpidRegister = { 0 };
@@ -56,7 +56,7 @@ EPT_VmxIsSupport()
 
 }
 
-BOOLEAN     
+bool     
 CR0_VmxIsSuppor()
 {
 
@@ -85,7 +85,7 @@ FrogExAllocatePool(ULONG Size)
 }
 
 //创建VMX管理结构
-BOOLEAN 
+bool 
 Forg_AllocateForgVmxRegion() 
 {
 	ULONG		CountOfProcessor = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
@@ -224,7 +224,7 @@ Frog_SetMsrBitToEnableHyper()
 }
 
 //检查是否支持虚拟化
-BOOLEAN		
+bool		
 Frog_IsSupportHyper() 
 {
 
@@ -369,7 +369,7 @@ Frog_FullVmxSelector(KPROCESSOR_STATE		HostState)
 	return Status;
 }
 
-BOOLEAN     
+bool     
 Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9)
 {
     CpuId Data = { 0 };
