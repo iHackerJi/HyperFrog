@@ -18,8 +18,6 @@
 #define		Symbol_ModuleNameLength		0x20
 #define		Symbol_InfoListMax			0x20
 
-#define		Symbol_MaxListFlag		"_MaxList"
-
 
 typedef enum _EnumSymbolType
 {

@@ -62,7 +62,7 @@ NTSTATUS DispatchIoctrl(PDEVICE_OBJECT pObject, PIRP pIrp)
         {
             for (ULONG j = 0; j < Symbol_InfoListMax; j++)
             {
-                if (strcmp(GetFunctionInfoList[i].InfoList[j].Name, Symbol_MaxListFlag) == 0)
+                if (strcmp(GetFunctionInfoList[i].InfoList[j].Name, Frog_MaxListFlag) == 0)
                 {
                     break;
                 }
@@ -95,7 +95,7 @@ NTSTATUS DispatchIoctrl(PDEVICE_OBJECT pObject, PIRP pIrp)
         {
             for (ULONG j = 0; j < Symbol_InfoListMax; j++)
             {
-                if (strcmp(GetTypeInfoList[i].InfoList[j].ParentName, Symbol_MaxListFlag) == 0)
+                if (strcmp(GetTypeInfoList[i].InfoList[j].ParentName, Frog_MaxListFlag) == 0)
                 {
                     break;
                 }

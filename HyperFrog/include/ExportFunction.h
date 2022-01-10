@@ -82,3 +82,11 @@ NTAPI
 RtlCaptureContext(
 	_Out_ PCONTEXT ContextRecord
 );
+
+
+typedef NTSTATUS(PFN_NtOpenProcess)(
+    PHANDLE            ProcessHandle,
+    ACCESS_MASK        DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PCLIENT_ID         ClientId
+    );

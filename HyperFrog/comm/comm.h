@@ -13,7 +13,7 @@ PVOID Pfn_NtSuspendThread;
 PVOID Pfn_IopInvalidDeviceRequest;
 PVOID Pfn_NtUserGetThreadState;
 PVOID Pfn_NtUserPeekMessage;
-ObKillProcessType		NONO_ObKillProcess;
+ObKillProcessType Pfn_ObKillProcess;
 
 
 //最多支持 Symbol_InfoListMax 个获取的信息
@@ -28,8 +28,8 @@ static	SymbolGetFunctionInfoList	g_GetFunctionInfoList[] =
             {"NtCallbackReturn",&Pfn_NtCallbackReturn},
             {"NtSuspendThread",&Pfn_NtSuspendThread},
             {"IopInvalidDeviceRequest",&Pfn_IopInvalidDeviceRequest},
-            {"ObKillProcess",(PVOID*)&NONO_ObKillProcess},
-            {Symbol_MaxListFlag,0}
+            {"ObKillProcess",(PVOID*)&Pfn_ObKillProcess},
+            {Frog_MaxListFlag,0}
         }
     },
     {
@@ -37,7 +37,7 @@ static	SymbolGetFunctionInfoList	g_GetFunctionInfoList[] =
         {
             {"NtUserGetThreadState",&Pfn_NtUserGetThreadState},
             {"NtUserPeekMessage",&Pfn_NtUserPeekMessage},
-            {Symbol_MaxListFlag,0}
+            {Frog_MaxListFlag,0}
         }
     }
 };
@@ -55,7 +55,7 @@ static	 SymbolGetTypeOffsetList	g_GetTypeOffsetInfoList[] =
             {"_ETHREAD","CreateTime",&Offset_Ethread_CreateTime},
             {"_ETHREAD","ThreadLock",&Offset_Ethread_ThreadLock},
             {"_ETHREAD","RundownProtect",&Offset_Ethread_RundownProtect},
-            {Symbol_MaxListFlag,Symbol_MaxListFlag,0}
+            {Frog_MaxListFlag,Frog_MaxListFlag,0}
         }
     }
 };
