@@ -237,8 +237,10 @@
   <ItemGroup>
     <ClInclude Include="comm\comm.h" />
     <ClInclude Include="include\ExportFunction.h" />
+    <ClInclude Include="include\ExportStruct.h" />
     <ClInclude Include="include\public.h" />
     <ClInclude Include="tools\tools.h" />
+    <ClInclude Include="vt\hook\hook_table.h" />
     <ClInclude Include="vt\hook\msr_hook.h" />
     <ClInclude Include="vt\ia32.h" />
     <ClInclude Include="vt\vt.h" />

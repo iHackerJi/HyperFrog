@@ -93,6 +93,12 @@
     <ClInclude Include="comm\comm.h">
       <Filter>Driver Files\Comm</Filter>
     </ClInclude>
+    <ClInclude Include="vt\hook\hook_table.h">
+      <Filter>Driver Files\VT\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ExportStruct.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="vt\vt.asm">

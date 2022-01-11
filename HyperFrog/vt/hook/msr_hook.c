@@ -1,9 +1,8 @@
 #include "public.h"
 
 ULONG64 g_orgKisystemcall64 = 0;
-PFN_NtOpenProcess orgNtOpenProcess;
 
-void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
+void Frog_initMsrHookEnableTable(char * pNtdll, ULONG NtdllSize)
 {
     PIMAGE_DOS_HEADER  pDos = (PIMAGE_DOS_HEADER)pNtdll;
     PIMAGE_NT_HEADERS64  pNts = (PIMAGE_NT_HEADERS)(pDos + pDos->e_lfanew);
@@ -45,7 +44,15 @@ void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
                         break;
                     if (ExportData[i] == 0xB8)  //mov eax,X
                     {
-                        g_MsrHookTable[j].Index = *(int*)(ExportData + i + 1);
+                        int index = *(int*)(ExportData + i + 1);
+
+                        if (index > MAX_SYSCALL_INDEX)
+                        {
+                            FrogBreak();
+                            FrogPrint("Hook的函数不在SSDT");
+                            break;
+                        }
+                        g_MsrHookEnableTable[index] = true;
                         break;
                     }
                     break;
@@ -53,14 +60,11 @@ void Frog_GetSsdtIndex(char * pNtdll, ULONG NtdllSize)
                 j++;
             }
         }
-
     }
 }
 
 bool  Frog_MsrHookEnable()
 {
-    g_orgKisystemcall64 = __readmsr(kIa32Lstar);
-     __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
 
      UNICODE_STRING uFileName = {0};
      HANDLE hFileHandle = NULL;
@@ -109,11 +113,13 @@ bool  Frog_MsrHookEnable()
 
          if (!NT_SUCCESS(nStatus))       break;
 
-         Frog_GetSsdtIndex(pNtdll, NtdllSize);
+         Frog_initMsrHookEnableTable(pNtdll, NtdllSize);
 
          result = TRUE;
      } while (FALSE);
 
+     g_orgKisystemcall64 = __readmsr(kIa32Lstar);
+     __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
 
      if (pNtdll)    FrogExFreePool(pNtdll);
      return result;
@@ -136,13 +142,12 @@ NTSTATUS HookNtOpenProcess(
 )
 {
 
-
-    //return orgNtOpenProcess
-    //(
-    //    ProcessHandle,
-    //    DesiredAccess,
-    //    ObjectAttributes,
-    //    ClientId
-    //);
+    return orgNtOpenProcess
+    (
+        ProcessHandle,
+        DesiredAccess,
+        ObjectAttributes,
+        ClientId
+    );
 }
 

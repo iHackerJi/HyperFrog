@@ -3,9 +3,6 @@
 NTSTATUS	InitComm(PDRIVER_OBJECT pDriverObj);
 void CommUnload();
 
-typedef void	(*ObKillProcessType)(
-    PEPROCESS Process
-    );
 
 PVOID Pfn_NtMapUserPhysicalPagesScatter;
 PVOID Pfn_NtCallbackReturn;
@@ -14,7 +11,6 @@ PVOID Pfn_IopInvalidDeviceRequest;
 PVOID Pfn_NtUserGetThreadState;
 PVOID Pfn_NtUserPeekMessage;
 ObKillProcessType Pfn_ObKillProcess;
-
 
 //最多支持 Symbol_InfoListMax 个获取的信息
 

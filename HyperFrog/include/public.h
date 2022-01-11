@@ -5,9 +5,16 @@
 #include <ntstrsafe.h>
 #include <intrin.h>
 #include <ntimage.h>
-#define Frog_MaxListFlag		"_MaxList"
-#define  bool BOOLEAN
 
+#define Frog_MaxListFlag		"_MaxList"
+#define MAX_SYSCALL_INDEX  0x1000
+#define NUMBER_SERVICE_TABLES 2
+
+#define  bool BOOLEAN
+#define  true TRUE
+#define  false FALSE
+
+#include "ExportStruct.h"
 #include "ExportFunction.h"
 #include "tools.h"
 #include "ia32.h"
@@ -17,6 +24,7 @@
 #include "SymbolShare.h"
 #include "comm.h"
 #include "msr_hook.h"
+#include "hook_table.h"
 
 extern	pFrogCpu g_FrogCpu;
 extern ULONG64 g_orgKisystemcall64;
