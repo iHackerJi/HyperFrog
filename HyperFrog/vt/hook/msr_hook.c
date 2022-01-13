@@ -3,10 +3,33 @@ ULONG64 g_origKisystemcall64 = 0;
 bool g_MsrHookEnableTable[MAX_SYSCALL_INDEX];
 void* g_MsrHookFunctionTable[MAX_SYSCALL_INDEX];
 
+int Frog_SearchIndex(unsigned char* ExportData)
+{
+    for (int i = 0; i < 32 ; i++)
+    {
+        if (ExportData[i] == 0xC2 || ExportData[i] == 0xC3)  //RET
+            break;
+
+        if (ExportData[i] == 0xB8)  //mov eax,X
+        {
+            int index = *(int*)(ExportData + i + 1);
+            if (index > MAX_SYSCALL_INDEX)
+            {
+                FrogBreak();
+                FrogPrint("Hook的函数不在SSDT");
+                break;
+            }
+            return index;
+            break;
+        }
+    }
+    return 0;
+}
+
 void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
 {
     PIMAGE_DOS_HEADER  pDos = (PIMAGE_DOS_HEADER)pNtdll;
-    PIMAGE_NT_HEADERS64  pNts = (PIMAGE_NT_HEADERS)(pDos + pDos->e_lfanew);
+    PIMAGE_NT_HEADERS64  pNts = (PIMAGE_NT_HEADERS)((char*)pDos + pDos->e_lfanew);
     PIMAGE_DATA_DIRECTORY  pDataDir = pNts->OptionalHeader.DataDirectory;
     ULONG ExportDirRva = pDataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
     ULONG ExportDirSize = pDataDir[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
@@ -27,7 +50,7 @@ void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
         ULONG CurrentNameOffset = RvaToOffset(pNts, AddressOfNames[i], NtdllSize);
         if (CurrentNameOffset == 0)
             continue;
-        const char* CurrentName = (const char*)(pNts + CurrentNameOffset);
+        const char* CurrentName = (const char*)((char*)pDos + CurrentNameOffset);
         ULONG CurrentFunctionRva = AddressOfFunctions[AddressOfNameOrdinals[i]];
         if (CurrentFunctionRva >= ExportDirRva && CurrentFunctionRva < ExportDirRva + ExportDirSize)
             continue; //we ignore forwarded exports
@@ -37,32 +60,17 @@ void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
             if (strcmp(CurrentName, g_MsrHookTable[j].functionName) == 0)  //compare the export name to the requested export
             {
                 ULONG  ExportOffset = RvaToOffset(pNts, CurrentFunctionRva, NtdllSize);
-                char* ExportData = ExportOffset + pNtdll;
-
-                for (int i = 0; i < 32 && ExportOffset + i < NtdllSize; i++)
+                unsigned char* ExportData = ExportOffset + pNtdll;
+                int index = Frog_SearchIndex(ExportData);
+                if (index != 0)
                 {
-                    if (ExportData[i] == 0xC2 || ExportData[i] == 0xC3)  //RET
-                        break;
-                    if (ExportData[i] == 0xB8)  //mov eax,X
-                    {
-                        int index = *(int*)(ExportData + i + 1);
-
-                        if (index > MAX_SYSCALL_INDEX)
-                        {
-                            FrogBreak();
-                            FrogPrint("Hook的函数不在SSDT");
-                            break;
-                        }
-                        g_MsrHookEnableTable[index] = true;
-                        g_MsrHookFunctionTable[index] = g_MsrHookTable[j].hookFunction;
-                        break;
-                    }
-                    break;
+                    InterlockedExchange8(&g_MsrHookEnableTable[index], true);
+                    InterlockedExchange64((PLONG64)&g_MsrHookFunctionTable[index], (LONG64)g_MsrHookTable[j].hookFunction);
                 }
-                j++;
             }
         }
     }
+
 }
 
 bool  Frog_MsrHookEnable()

@@ -25,6 +25,7 @@ MAX_SYSCALL_INDEX = 1000h
 FakeKiSystemCall64 PROC
     ;cli                                    ; Disable interrupts
     swapgs                                  ; swap GS base to kernel PCR
+    int 3
     mov         gs:[USERMD_STACK_GS], rsp   ; save user stack pointer
 
     cmp         rax, MAX_SYSCALL_INDEX      ; Is the index larger than the array size?
