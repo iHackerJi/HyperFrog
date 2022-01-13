@@ -14,6 +14,7 @@ void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 //当VT与符号都加载成功后会调用这个函数
 void Frog_CallRoutine(PDRIVER_OBJECT pObj)
 {
+	__debugbreak();
 	Frog_Hook();
 }
 
@@ -22,6 +23,8 @@ NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
 	FrogRetCode	fStatus = FrogSuccess;
 	NTSTATUS		nStatus = STATUS_SUCCESS;
 	
+	__debugbreak();
+
 	nStatus = InitComm(pDriverObj);
 	if (!NT_SUCCESS(nStatus))
 	{
@@ -37,7 +40,7 @@ NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
     }
 
     g_FrogCpu->EnableEpt = true;
-    g_FrogCpu->EnableHookMsr = false;
+    g_FrogCpu->EnableHookMsr = true;
 
 	fStatus = Frog_EnableHyper();
 

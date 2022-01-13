@@ -28,7 +28,6 @@
 #include "KiSystemCall64.h"
 
 extern	pFrogCpu g_FrogCpu;
-extern ULONG64 g_orgKisystemcall64;
 
 #define DEVICE_NAME L"\\Device\\HyperFrog"		
 #define SYMBOL_NAME L"\\??\\HyperFrog"

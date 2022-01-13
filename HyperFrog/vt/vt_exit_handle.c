@@ -77,7 +77,7 @@ void    vmexit_readmsr_handle(pFrog_GuestContext	Context)
     {
         case kIa32Lstar:
         {
-            MsrValue = g_orgKisystemcall64;//∑¿÷πPG
+            MsrValue = g_origKisystemcall64;//∑¿÷πPG
             break;
         }
         default:

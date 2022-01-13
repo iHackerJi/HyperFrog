@@ -1,5 +1,7 @@
 #include "public.h"
 ULONG64 g_origKisystemcall64 = 0;
+bool g_MsrHookEnableTable[MAX_SYSCALL_INDEX];
+void* g_MsrHookFunctionTable[MAX_SYSCALL_INDEX];
 
 void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
 {
@@ -115,7 +117,7 @@ bool  Frog_MsrHookEnable()
          result = true;
      } while (false);
 
-     g_orgKisystemcall64 = __readmsr(kIa32Lstar);
+     g_origKisystemcall64 = __readmsr(kIa32Lstar);
      __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
 
      if (pNtdll)    FrogExFreePool(pNtdll);
@@ -125,9 +127,9 @@ bool  Frog_MsrHookEnable()
 
 bool Frog_MsrHookDisable()
 {
-    if (g_orgKisystemcall64)
+    if (g_origKisystemcall64)
     {
-        __writemsr(kIa32Lstar, g_orgKisystemcall64);
+        __writemsr(kIa32Lstar, g_origKisystemcall64);
         return true;
     }
     return false;

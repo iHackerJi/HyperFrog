@@ -3,13 +3,13 @@ FakeKiSystemCall64	PROTO
 extern g_MsrHookEnableTable:DB
 extern g_MsrHookFunctionTable:DQ
 extern g_origKisystemcall64:DQ
-
 extern g_KiSystemServiceCopyEnd:DQ 
+extern MmUserProbeAddress:DQ
 
 USERMD_STACK_GS = 10h
 KERNEL_STACK_GS = 1A8h
 MAX_SYSCALL_INDEX = 1000h
-MmUserProbeAddress = 00007fff`ffff0000 
+
 .code
 
 ; *********************************************************
@@ -113,7 +113,7 @@ KiSystemServiceRepeat_Emulate PROC
     mov       r10, qword ptr [r11 + rax * 8h]
 
     and         eax,0fh
-    jz [g_KiSystemServiceCopyEnd];不需要压栈
+     jz   NoPushStackKiSystemServiceCopyEnd ;不需要压栈
 
      shl         eax,3
      lea     rsp, [rsp-70h]  ; 分配新的栈空间存放，又用户栈复制来的参数
@@ -122,15 +122,17 @@ KiSystemServiceRepeat_Emulate PROC
      lea     rsi, [rsi+20h]  ; 忽略用户栈中的返回值
                                     ; 忽略为寄存器参数预留的栈空间
      test    byte ptr [rbp+0F0h], 1 ; TRAP_FRAME.SegCs判断SYSCALL是否为用户模式
-     jz      RelocationKiSystemServiceCopyEnd
-     cmp     rsi, cs:MmUserProbeAddress
-     cmovnb  rsi, cs:MmUserProbeAddress
+     jz   PushStackKiSystemServiceCopyEnd
+     cmp     rsi,  MmUserProbeAddress
+     cmovnb  rsi,  MmUserProbeAddress
      nop     dword ptr [rax+00000000h]
-RelocationKiSystemServiceCopyEnd:
+PushStackKiSystemServiceCopyEnd:
      lea r11,g_KiSystemServiceCopyEnd
      sub r11,rax
      jmp r11
 
+NoPushStackKiSystemServiceCopyEnd:
+     jmp [g_KiSystemServiceCopyEnd]
     ;lea         r11, offset ArgTble
     ;movzx       rax, byte ptr [r11 + rax]   ; RAX = paramter count
 

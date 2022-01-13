@@ -16,6 +16,8 @@
 
 #define DEVICE_NAME "\\\\.\\HyperFrog"
 #define SYMBOL_NAME "FrogSymbol"
+#define Frog_MaxListFlag		"_MaxList"
+
 namespace global
 {
     extern HANDLE	hFile;

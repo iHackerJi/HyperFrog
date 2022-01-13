@@ -384,7 +384,7 @@ bool symbol::EnumSymbols(char* ModuleName, EnumSymbolType	Type, PVOID  NeedList)
         global::listCount = 0;
         for (int i = 0; i < Symbol_InfoListMax; i++)
         {
-            if (strcmp(Info[i].Name, Symbol_MaxListFlag) == 0)
+            if (strcmp(Info[i].Name, Frog_MaxListFlag) == 0)
             {
                 global::listCount = i;
                 break;
@@ -404,7 +404,7 @@ bool symbol::EnumSymbols(char* ModuleName, EnumSymbolType	Type, PVOID  NeedList)
         global::listCount = 0;
         for (int i = 0; i < Symbol_InfoListMax; i++)
         {
-            if (strcmp(Info[i].ParentName, Symbol_MaxListFlag) == 0)
+            if (strcmp(Info[i].ParentName, Frog_MaxListFlag) == 0)
             {
                 global::listCount = i;
                 break;
