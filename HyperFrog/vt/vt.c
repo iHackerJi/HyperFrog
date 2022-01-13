@@ -6,7 +6,7 @@ pFrogCpu g_FrogCpu = NULL;
 FrogRetCode
 Frog_SetupVmcs(pFrogVmx pForgVmxEntry) 
 {
-	ULONG														UseTrueMsrs = 0;
+	ULONG														UsetrueMsrs = 0;
 	FrogRetCode												Status = FrogSuccess;
 	Ia32VmxBasicMsr										    VmxBasicMsr = { 0 };
 	VmxPinBasedControls									VmPinBasedControls = { 0 };
@@ -20,35 +20,35 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 
 	Status |= Frog_Vmx_Write(VMCS_LINK_POINTER, 0xFFFFFFFFFFFFFFFF);
 	VmxBasicMsr.all = __readmsr(kIa32VmxBasic);
-	UseTrueMsrs = (bool)VmxBasicMsr.fields.vmx_capability_hint;
+	UsetrueMsrs = (bool)VmxBasicMsr.fields.vmx_capability_hint;
 
 	//Pin-Based
-	VmPinBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTruePinbasedCtls : kIa32VmxPinbasedCtls, VmPinBasedControls.all);
+	VmPinBasedControls.all = Frog_VmxAdjustControlValue(UsetrueMsrs ? kIa32VmxtruePinbasedCtls : kIa32VmxPinbasedCtls, VmPinBasedControls.all);
 
 	//处理器控制域
-	VmProcessorBasedControls.fields.use_msr_bitmaps = TRUE;
-	VmProcessorBasedControls.fields.activate_secondary_control = TRUE;
-	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
+	VmProcessorBasedControls.fields.use_msr_bitmaps = true;
+	VmProcessorBasedControls.fields.activate_secondary_control = true;
+	VmProcessorBasedControls.all = Frog_VmxAdjustControlValue(UsetrueMsrs ? kIa32VmxtrueProcBasedCtls : kIa32VmxProcBasedCtls, VmProcessorBasedControls.all);
 
 	//处理器的扩展控制域
-    VmSecondaryProcessorBasedControls.fields.enable_rdtscp = TRUE;
-    VmSecondaryProcessorBasedControls.fields.enable_invpcid = TRUE;
-    VmSecondaryProcessorBasedControls.fields.enable_xsaves_xstors = TRUE;
+    VmSecondaryProcessorBasedControls.fields.enable_rdtscp = true;
+    VmSecondaryProcessorBasedControls.fields.enable_invpcid = true;
+    VmSecondaryProcessorBasedControls.fields.enable_xsaves_xstors = true;
     if (g_FrogCpu->EnableEpt)
     {
-        VmSecondaryProcessorBasedControls.fields.enable_ept = TRUE;  // 开启 EPT
-         VmSecondaryProcessorBasedControls.fields.enable_vpid = TRUE; // 开启 VPID
+        VmSecondaryProcessorBasedControls.fields.enable_ept = true;  // 开启 EPT
+         VmSecondaryProcessorBasedControls.fields.enable_vpid = true; // 开启 VPID
     }
 	VmSecondaryProcessorBasedControls.all = Frog_VmxAdjustControlValue(kIa32VmxProcBasedCtls2, VmSecondaryProcessorBasedControls.all);
 
 	//Vm-Entry控制域
-	VmVmentryControls.fields.ia32e_mode_guest = TRUE;
-	VmVmentryControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTrueEntryCtls : kIa32VmxEntryCtls, VmVmentryControls.all);
+	VmVmentryControls.fields.ia32e_mode_guest = true;
+	VmVmentryControls.all = Frog_VmxAdjustControlValue(UsetrueMsrs ? kIa32VmxtrueEntryCtls : kIa32VmxEntryCtls, VmVmentryControls.all);
 
 	//Vm-Exit控制域
-	VmExitControls.fields.acknowledge_interrupt_on_exit = TRUE;
-	VmExitControls.fields.host_address_space_size = TRUE;
-	VmExitControls.all = Frog_VmxAdjustControlValue(UseTrueMsrs ? kIa32VmxTrueExitCtls : kIa32VmxExitCtls, VmExitControls.all);
+	VmExitControls.fields.acknowledge_interrupt_on_exit = true;
+	VmExitControls.fields.host_address_space_size = true;
+	VmExitControls.all = Frog_VmxAdjustControlValue(UsetrueMsrs ? kIa32VmxtrueExitCtls : kIa32VmxExitCtls, VmExitControls.all);
 
 	Status |=Frog_Vmx_Write(PIN_BASED_VM_EXEC_CONTROL, VmPinBasedControls.all);
 	Status |=Frog_Vmx_Write(CPU_BASED_VM_EXEC_CONTROL, VmProcessorBasedControls.all);
@@ -131,7 +131,7 @@ VOID	Frog_DpcRunHyper(
 	RtlCaptureContext(&pForgVmxEntry->HostState.ContextFrame);
 
     //这个地方存储了环境，也就说明RIP也会被保存进去，我们GUEST_RIP填的也是这个，所以这个地方会被进来两次，我们需要判断一下VMX是否开启了
-    if (pForgVmxEntry->HyperIsEnable == FALSE)
+    if (pForgVmxEntry->HyperIsEnable == false)
     {
         //申请VMCS、VMXON、等等区域
         Status = Frog_AllocateHyperRegion(pForgVmxEntry, CpuNumber);
@@ -183,10 +183,10 @@ VOID	Frog_DpcRunHyper(
             goto	_HyperInitExit;
         }
 
-        pForgVmxEntry->HyperIsEnable = TRUE;
+        pForgVmxEntry->HyperIsEnable = true;
         if (__vmx_vmlaunch())
         {
-			pForgVmxEntry->HyperIsEnable = FALSE;
+			pForgVmxEntry->HyperIsEnable = false;
             VmxErrorCode = Frog_Vmx_Read(VM_INSTRUCTION_ERROR);
             FrogPrint("VmLaunch	Error = %d", VmxErrorCode);
             FrogBreak();

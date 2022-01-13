@@ -11,6 +11,7 @@ PVOID Pfn_IopInvalidDeviceRequest;
 PVOID Pfn_NtUserGetThreadState;
 PVOID Pfn_NtUserPeekMessage;
 ObKillProcessType Pfn_ObKillProcess;
+PVOID g_KiSystemServiceCopyEnd;
 
 //最多支持 Symbol_InfoListMax 个获取的信息
 
@@ -25,6 +26,7 @@ static	SymbolGetFunctionInfoList	g_GetFunctionInfoList[] =
             {"NtSuspendThread",&Pfn_NtSuspendThread},
             {"IopInvalidDeviceRequest",&Pfn_IopInvalidDeviceRequest},
             {"ObKillProcess",(PVOID*)&Pfn_ObKillProcess},
+            {"KiSystemServiceCopyEnd",(PVOID*)&g_KiSystemServiceCopyEnd},
             {Frog_MaxListFlag,0}
         }
     },

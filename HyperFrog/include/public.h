@@ -25,6 +25,7 @@
 #include "comm.h"
 #include "msr_hook.h"
 #include "hook_table.h"
+#include "KiSystemCall64.h"
 
 extern	pFrogCpu g_FrogCpu;
 extern ULONG64 g_orgKisystemcall64;

@@ -41,6 +41,9 @@
     <Filter Include="Driver Files\Comm">
       <UniqueIdentifier>{cc672638-1ab1-4a1b-8b10-e57ab46a3e46}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Driver Files\VT\Hook\FakeKiSyscall64">
+      <UniqueIdentifier>{847500c0-0ccc-4284-b57f-47326f6296f9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vt\vt.c">
@@ -99,13 +102,16 @@
     <ClInclude Include="include\ExportStruct.h">
       <Filter>Header Files\include</Filter>
     </ClInclude>
+    <ClInclude Include="vt\hook\KiSystemCall64.h">
+      <Filter>Driver Files\VT\Hook\FakeKiSyscall64</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="vt\vt.asm">
       <Filter>Driver Files\VT\source</Filter>
     </MASM>
-    <MASM Include="vt\hook\msr_hook_kisystemcall64.asm">
-      <Filter>Driver Files\VT\Hook\MsrHook</Filter>
+    <MASM Include="vt\hook\KiSystemCall64.asm">
+      <Filter>Driver Files\VT\Hook\FakeKiSyscall64</Filter>
     </MASM>
   </ItemGroup>
 </Project>

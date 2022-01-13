@@ -1,8 +1,7 @@
 #include "public.h"
+ULONG64 g_origKisystemcall64 = 0;
 
-ULONG64 g_orgKisystemcall64 = 0;
-
-void Frog_initMsrHookEnableTable(char * pNtdll, ULONG NtdllSize)
+void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
 {
     PIMAGE_DOS_HEADER  pDos = (PIMAGE_DOS_HEADER)pNtdll;
     PIMAGE_NT_HEADERS64  pNts = (PIMAGE_NT_HEADERS)(pDos + pDos->e_lfanew);
@@ -53,6 +52,7 @@ void Frog_initMsrHookEnableTable(char * pNtdll, ULONG NtdllSize)
                             break;
                         }
                         g_MsrHookEnableTable[index] = true;
+                        g_MsrHookFunctionTable[index] = g_MsrHookTable[j].hookFunction;
                         break;
                     }
                     break;
@@ -65,7 +65,6 @@ void Frog_initMsrHookEnableTable(char * pNtdll, ULONG NtdllSize)
 
 bool  Frog_MsrHookEnable()
 {
-
      UNICODE_STRING uFileName = {0};
      HANDLE hFileHandle = NULL;
      OBJECT_ATTRIBUTES ObjectAttributes = {0};
@@ -73,7 +72,7 @@ bool  Frog_MsrHookEnable()
      NTSTATUS nStatus = STATUS_SUCCESS;
      char* pNtdll = NULL;
      ULONG NtdllSize = 0;
-     bool result = FALSE;
+     bool result = false;
 
      RtlInitUnicodeString(&uFileName, L"\\SystemRoot\\system32\\ntdll.dll");
      InitializeObjectAttributes(&ObjectAttributes, &uFileName,
@@ -112,11 +111,9 @@ bool  Frog_MsrHookEnable()
              &ByteOffset, NULL);
 
          if (!NT_SUCCESS(nStatus))       break;
-
-         Frog_initMsrHookEnableTable(pNtdll, NtdllSize);
-
-         result = TRUE;
-     } while (FALSE);
+         Frog_InitMsrHookTable(pNtdll, NtdllSize);
+         result = true;
+     } while (false);
 
      g_orgKisystemcall64 = __readmsr(kIa32Lstar);
      __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
@@ -126,12 +123,14 @@ bool  Frog_MsrHookEnable()
 
 }
 
-void Frog_MsrHookDisable()
+bool Frog_MsrHookDisable()
 {
     if (g_orgKisystemcall64)
     {
         __writemsr(kIa32Lstar, g_orgKisystemcall64);
+        return true;
     }
+    return false;
 }
 
 NTSTATUS HookNtOpenProcess(

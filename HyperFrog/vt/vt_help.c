@@ -12,9 +12,9 @@ CPUID_VmxIsSupport()
 	info.all = cpuInfo[EnumECX];
 
 	if (!info.fields.vmx)
-		return	FALSE;
+		return	false;
 
-	return	TRUE;
+	return	true;
 }
 
 bool
@@ -24,9 +24,9 @@ MSR_VmxIsSupport()
 	Ia32FeatureControlMsr VmxFeatureControl;
 	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
 	if (VmxFeatureControl.fields.enable_vmxon)
-		return	TRUE;
+		return	true;
 
-	return	FALSE;
+	return	false;
 }
 
 bool         
@@ -44,15 +44,15 @@ EPT_VmxIsSupport()
             || !VpidRegister.fields.support_write_back_memory_type
             || !VpidRegister.fields.support_pde_2mb_pages)
         {
-            return FALSE;
+            return false;
         }
 
         if (!MTRRDefType.MtrrEnable)
         {
-            return FALSE;
+            return false;
         }
     }
-    return TRUE;
+    return true;
 
 }
 
@@ -68,9 +68,9 @@ CR0_VmxIsSuppor()
 		VmxCr0.fields.ne &&
 		VmxCr0.fields.pe
 		)
-		return TRUE;
+		return true;
 
-	return FALSE;
+	return false;
 }
 
 PVOID  
@@ -99,10 +99,10 @@ Forg_AllocateForgVmxRegion()
 	{
 		if (g_FrogCpu) FrogExFreePool(g_FrogCpu);
 		if (g_FrogCpu->pForgVmxEntrys) FrogExFreePool(g_FrogCpu->pForgVmxEntrys);
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
 }
 
 void	
@@ -218,7 +218,7 @@ Frog_SetMsrBitToEnableHyper()
 	VmxFeatureControl.all = __readmsr(kIa32FeatureControl);
 	g_FrogCpu->OrigFeatureControlMsr.all = VmxFeatureControl.all;
 	
-	VmxFeatureControl.fields.lock = TRUE;
+	VmxFeatureControl.fields.lock = true;
 	__writemsr(kIa32FeatureControl, VmxFeatureControl.all);
 
 }
@@ -233,9 +233,9 @@ Frog_IsSupportHyper()
 		CR0_VmxIsSuppor()  &&
         EPT_VmxIsSupport()
 		)
-		return	TRUE;
+		return	true;
 
-	return FALSE;
+	return false;
 
 }
 
@@ -376,12 +376,12 @@ Frog_VmCall(ULONG64    Rcx, ULONG64    Rdx, ULONG64    R8, ULONG64    R9)
 
     __cpuid((int*)&Data, FrogTag);
     if (Data.eax != FrogTag) {
-        return FALSE;
+        return false;
     }
 
     Asm_VmxCall(Rcx, Rdx, R8, R9);
 
-    return TRUE;
+    return true;
 }
 
 void
@@ -409,7 +409,7 @@ SetEptMemoryByMttrInfo(
         }
 
         // 检测内存是否启用
-        if (g_FrogCpu->MtrrRange[k].Enabled != FALSE)
+        if (g_FrogCpu->MtrrRange[k].Enabled != false)
         {
             ///See: 11.11.4 Range Size and Alignment Requirement
             // 检查大页面物理地址的边界,如果单物理页面为4KB,则改写入口为2MB的MemType
@@ -492,11 +492,11 @@ Frog_SetEptp(pFrogVmx pForgVmxEntry)
 
     if (ia32Eptinfo.fields.support_accessed_and_dirty_flag) // Ept dirty 标志位是否有效
     {
-        pForgVmxEntry->VmxEptInfo.VmxEptp.EnableAccessAndDirtyFlags = TRUE;
+        pForgVmxEntry->VmxEptInfo.VmxEptp.EnableAccessAndDirtyFlags = true;
     }
     else
     {
-        pForgVmxEntry->VmxEptInfo.VmxEptp.EnableAccessAndDirtyFlags = FALSE;
+        pForgVmxEntry->VmxEptInfo.VmxEptp.EnableAccessAndDirtyFlags = false;
     }
 
     pForgVmxEntry->VmxEptInfo.VmxEptp.PageFrameNumber = MmGetPhysicalAddress(&(pForgVmxEntry->VmxEptInfo.PML4T[0])).QuadPart / PAGE_SIZE;
@@ -518,7 +518,7 @@ Frog_GetMtrrInfo()
         MtrrMask.AsUlonglong = __readmsr(kIa32MtrrPhysMaskN + i * 2);
 
         //检查是否启用
-        if (MtrrMask.u.Enabled) /*mtrrData[i].Enabled != FALSE && */
+        if (MtrrMask.u.Enabled) /*mtrrData[i].Enabled != false && */
         {
             PFrogMtrrFange   MtrrDesciptor = &g_FrogCpu->MtrrRange[g_FrogCpu->NumberOfEnableMemRangs++];
             MtrrDesciptor->Type = (UINT32)MtrrBase.u.Type;

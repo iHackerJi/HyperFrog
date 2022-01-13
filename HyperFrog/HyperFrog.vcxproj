@@ -241,6 +241,7 @@
     <ClInclude Include="include\public.h" />
     <ClInclude Include="tools\tools.h" />
     <ClInclude Include="vt\hook\hook_table.h" />
+    <ClInclude Include="vt\hook\KiSystemCall64.h" />
     <ClInclude Include="vt\hook\msr_hook.h" />
     <ClInclude Include="vt\ia32.h" />
     <ClInclude Include="vt\vt.h" />
@@ -248,7 +249,7 @@
     <ClInclude Include="vt\vt_help.h" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="vt\hook\msr_hook_kisystemcall64.asm" />
+    <MASM Include="vt\hook\KiSystemCall64.asm" />
     <MASM Include="vt\vt.asm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

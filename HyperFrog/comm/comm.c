@@ -3,7 +3,7 @@
 PDRIVER_OBJECT g_pDriverObj = NULL;;
 UNICODE_STRING g_DeviceName = RTL_CONSTANT_STRING(DEVICE_NAME);
 UNICODE_STRING g_SymbolName = RTL_CONSTANT_STRING(SYMBOL_NAME);
-bool g_DeviceAndSymbolLinkDelete = FALSE;
+bool g_DeviceAndSymbolLinkDelete = false;
 
 NTSTATUS DispatchCommon(PDEVICE_OBJECT pObject, PIRP pIrp)
 {
@@ -139,7 +139,7 @@ NTSTATUS	InitComm(PDRIVER_OBJECT pDriverObj)
     OBJECT_ATTRIBUTES	 ObjectAttributes = { 0 };
 
     g_pDriverObj = pDriverObj;
-    Status = IoCreateDevice(pDriverObj, 0, &g_DeviceName, FILE_DEVICE_UNKNOWN, 0, FALSE, &pDeviceObject);
+    Status = IoCreateDevice(pDriverObj, 0, &g_DeviceName, FILE_DEVICE_UNKNOWN, 0, false, &pDeviceObject);
 
     if (!NT_SUCCESS(Status))
     {

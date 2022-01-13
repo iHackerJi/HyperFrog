@@ -184,7 +184,7 @@ void    vmexit_vmcall_handle(pFrog_GuestContext	Context)
 
             __vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr);
             __vmx_off();
-            pForgVmxEntry->HyperIsEnable = FALSE;
+            pForgVmxEntry->HyperIsEnable = false;
             Asm_Jmp(Rip, Rsp);
             break;
         }

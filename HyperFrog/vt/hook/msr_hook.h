@@ -1,6 +1,7 @@
 #pragma once
+
 bool Frog_MsrHookEnable();
-void Frog_MsrHookDisable();
+bool Frog_MsrHookDisable();
 void FakeKiSystemCall64();
 
 NTSTATUS HookNtOpenProcess(

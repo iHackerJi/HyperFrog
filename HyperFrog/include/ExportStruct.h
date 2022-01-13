@@ -46,7 +46,7 @@ typedef struct _KPROCESSOR_STATE
 } KPROCESSOR_STATE, * PKPROCESSOR_STATE;
 
 typedef struct _KSERVICE_TABLE_DESCRIPTOR {
-    ULONG64 Base;
+    PULONG Base;
     ULONG64 Count;
     ULONG64 Limit;
     PUCHAR Number;
