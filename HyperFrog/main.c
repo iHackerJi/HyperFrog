@@ -1,7 +1,7 @@
 #include "public.h"
 
 void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
-	FrogRetCode	Status;
+    FrogRetCode	Status;
 	Status = Frog_DisableHyper();
 	CommUnload();
 	if (!Frog_SUCCESS(Status))

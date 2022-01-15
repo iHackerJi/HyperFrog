@@ -78,7 +78,6 @@ void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
             }
         }
     }
-
 }
 
 bool  Frog_MsrHookEnable()
@@ -143,73 +142,17 @@ bool  Frog_MsrHookEnable()
 
 bool Frog_MsrHookDisable()
 {
+    KIRQL kIrql=0;
+    bool result = false;
+    kIrql = KeRaiseIrqlToDpcLevel();
     if (g_origKisystemcall64)
     {
         __writemsr(kIa32Lstar, g_origKisystemcall64);
-        return true;
+        result = true;
+        goto _Exit;
     }
-    return false;
+_Exit:
+    KeLowerIrql(kIrql);
+    return result;
 }
 
-NTSTATUS HookNtOpenProcess(
-    PHANDLE            ProcessHandle,
-    ACCESS_MASK        DesiredAccess,
-    POBJECT_ATTRIBUTES ObjectAttributes,
-    PCLIENT_ID         ClientId
-)
-{
-    return NtOpenProcess
-    (
-        ProcessHandle,
-        DesiredAccess,
-        ObjectAttributes,
-        ClientId
-    );
-}
-
- NTSTATUS HookNtReadFile(
-    HANDLE           FileHandle,
-    HANDLE           Event,
-    PIO_APC_ROUTINE  ApcRoutine,
-    PVOID            ApcContext,
-    PIO_STATUS_BLOCK IoStatusBlock,
-    PVOID            Buffer,
-    ULONG            Length,
-    PLARGE_INTEGER   ByteOffset,
-    PULONG           Key
-)
-{
-     __debugbreak();
-
-    return NtReadFile
-    (
-        FileHandle,
-        Event,
-        ApcRoutine,
-        ApcContext,
-        IoStatusBlock,
-        Buffer,
-        Length,
-        ByteOffset,
-        Key
-    );
-}
-
- NTSTATUS HookNtQueryKey(
-     HANDLE                KeyHandle,
-     KEY_INFORMATION_CLASS KeyInformationClass,
-     PVOID                 KeyInformation,
-     ULONG                 Length,
-     PULONG                ResultLength
- )
- {
-     __debugbreak();
-     return ZwQueryKey
-     (
-         KeyHandle,
-         KeyInformationClass,
-         KeyInformation,
-         Length,
-         ResultLength
-     );
- }

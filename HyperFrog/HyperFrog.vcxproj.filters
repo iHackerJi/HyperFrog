@@ -44,6 +44,9 @@
     <Filter Include="Driver Files\VT\Hook\FakeKiSyscall64">
       <UniqueIdentifier>{847500c0-0ccc-4284-b57f-47326f6296f9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Driver Files\VT\Hook\HookFunction">
+      <UniqueIdentifier>{1e08872a-c0de-4856-863e-828f07881ea2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vt\vt.c">
@@ -66,6 +69,9 @@
     </ClCompile>
     <ClCompile Include="comm\comm.c">
       <Filter>Driver Files\Comm</Filter>
+    </ClCompile>
+    <ClCompile Include="vt\hook\hook_function.c">
+      <Filter>Driver Files\VT\Hook\HookFunction</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -104,6 +110,9 @@
     </ClInclude>
     <ClInclude Include="vt\hook\KiSystemCall64.h">
       <Filter>Driver Files\VT\Hook\FakeKiSyscall64</Filter>
+    </ClInclude>
+    <ClInclude Include="vt\hook\hook_function.h">
+      <Filter>Driver Files\VT\Hook\HookFunction</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -257,6 +257,7 @@ FrogRetCode	Frog_DisableHyper()
     __writemsr(kIa32FeatureControl, g_FrogCpu->OrigFeatureControlMsr.all);
     if (g_FrogCpu->pForgVmxEntrys)		FrogExFreePool(g_FrogCpu->pForgVmxEntrys);
 	if (g_FrogCpu)		FrogExFreePool(g_FrogCpu);
+    sleep(15000);
 
 	return	FrogSuccess;
 }

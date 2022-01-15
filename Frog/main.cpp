@@ -30,7 +30,7 @@ int main()
     char	ServiceName[] = "HyperFrog";
     char	DriverName[] = "HyperFrog.sys";
     HANDLE hThread = NULL;
-    SetConsoleCtrlHandler(HandlerRoutine, true);
+   // SetConsoleCtrlHandler(HandlerRoutine, true);
     do 
     {
         if (!driver::LoadDriver(ServiceName, DriverName))	
@@ -54,6 +54,9 @@ int main()
     WaitForSingleObject(hThread, INFINITE);
 
     tools::FrogPrintfEx("HyperFrog is Init! \r\n");
+    tools::FrogPrintfEx("Enter to Disable HyperFrog \r\n");
     system("pause");
+    driver::UnLoadDriver();
+
     return 0;
 }

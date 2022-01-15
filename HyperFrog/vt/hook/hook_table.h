@@ -9,10 +9,14 @@ typedef struct _MsrHookTable
 
 static MsrHookTable g_MsrHookTable[] =
 {
-    //{
-    //    "NtOpenProcess",
-    //    (PVOID)HookNtOpenProcess,
-    //},
+    {
+        "NtOpenProcess",
+        (PVOID)HookNtOpenProcess,
+    },
+    {
+        "NtReadFile",
+        (PVOID)HookNtReadFile,
+    },
     {
         "NtQueryKey",
         (PVOID)HookNtQueryKey,
