@@ -26,6 +26,8 @@
 #define MEMORY_TYPE_WRITE_BACK      0x00000006
 #define MEMORY_TYPE_INVALID         0x000000FF
 
+#define ia32_cr4_vmxe			13
+#define ia32_cr4_vmxe_bit		0x2000
 
 //-------------Enum
 

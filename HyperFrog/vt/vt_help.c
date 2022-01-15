@@ -189,12 +189,11 @@ Frog_Vmx_Read(ULONG64 Field)
 
 //设置CR0寄存器的一些位以支持虚拟化
 void		
-Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry)
+Frog_SetCrxToEnableHyper()
 {
 	//开启后允许使用VMXON
 	Cr4	VmxCr4;
 	VmxCr4.all = __readcr4();
-    pForgVmxEntry->OrigCr4 = VmxCr4.all;
 
 	VmxCr4.all &= __readmsr(kIa32VmxCr4Fixed1);
 	VmxCr4.all |= __readmsr(kIa32VmxCr4Fixed0);
@@ -202,7 +201,6 @@ Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry)
 
 	Cr0 VmxCr0;
 	VmxCr0.all = __readcr0();
-    pForgVmxEntry->OrigCr0 = VmxCr0.all;
 	VmxCr0.all &= __readmsr(kIa32VmxCr0Fixed1);
 	VmxCr0.all |= __readmsr(kIa32VmxCr0Fixed0);
 	__writecr0(VmxCr0.all);

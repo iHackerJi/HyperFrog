@@ -41,7 +41,7 @@ ULONG RvaToOffset(PIMAGE_NT_HEADERS pnth, ULONG Rva, ULONG FileSize)
 void sleep(LONG milliseconds)
 {
     LARGE_INTEGER interval;
-    interval.QuadPart = -(10000ll * milliseconds);
+    interval.QuadPart = -10000ll * milliseconds;
 
     KeDelayExecutionThread(KernelMode, FALSE, &interval);
 }

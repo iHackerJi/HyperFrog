@@ -124,7 +124,7 @@ VOID	Frog_DpcRunHyper(
 	size_t				VmxErrorCode = 0;
 
 	//每个CPU核都有个CR4、CR0感觉还是全都设置了好
-	Frog_SetCr0andCr4BitToEnableHyper(pForgVmxEntry);
+	Frog_SetCrxToEnableHyper();
 
 	//保存HOST机上下文
 	KeSaveStateForHibernate(&pForgVmxEntry->HostState);
@@ -247,8 +247,11 @@ FrogRetCode	Frog_DisableHyper()
     
         if (Frog_VmCall(FrogExitTag, 0, 0, 0))
         {
-            __writecr4(pForgVmxEntry->OrigCr4);
-             __writecr0(pForgVmxEntry->OrigCr0);
+            Cr4 cr4 = { 0 };
+            cr4.all =  __readcr4();
+            cr4.fields.vmxe = 0;
+            __writecr4(cr4.all);
+        
             Frog_FreeHyperRegion(pForgVmxEntry);
         }
         KeRevertToUserGroupAffinityThread(&Origaffinity);
@@ -257,7 +260,7 @@ FrogRetCode	Frog_DisableHyper()
     __writemsr(kIa32FeatureControl, g_FrogCpu->OrigFeatureControlMsr.all);
     if (g_FrogCpu->pForgVmxEntrys)		FrogExFreePool(g_FrogCpu->pForgVmxEntrys);
 	if (g_FrogCpu)		FrogExFreePool(g_FrogCpu);
+    FrogBreak();
     sleep(15000);
-
 	return	FrogSuccess;
 }

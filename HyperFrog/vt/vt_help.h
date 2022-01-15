@@ -16,7 +16,8 @@ ULONG64 Frog_Vmx_Read(ULONG64 Field);
 ULONG  Frog_VmxAdjustControlValue(Msr	msr, ULONG MapValue);
 VOID Frog_GetSelectInfo(PKDESCRIPTOR		pGdtr, USHORT					Select, PULONG64				pBase, PULONG64				pLimit, PULONG64				pAccess);
 
-void Frog_SetCr0andCr4BitToEnableHyper(pFrogVmx		pForgVmxEntry);
+void Frog_SetCrxToEnableHyper();
+void Frog_SetCrxToDisableHyper();
 void Frog_SetMsrBitToEnableHyper();
 FrogRetCode Frog_FullVmxSelector(KPROCESSOR_STATE		HostState);
 

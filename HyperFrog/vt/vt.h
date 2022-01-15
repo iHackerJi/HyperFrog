@@ -27,8 +27,6 @@ typedef struct _FrogVmxEptInfo
 }FrogVmxEptInfo, * PFrogVmxEptInfo;
 
 typedef struct _FrogVmx {
-	ULONG64			OrigCr4;
-    ULONG64            OrigCr0;
     bool			HyperIsEnable;
 	KPROCESSOR_STATE		HostState;
 

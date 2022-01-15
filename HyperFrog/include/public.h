@@ -29,6 +29,8 @@
 #include "KiSystemCall64.h"
 
 extern	pFrogCpu g_FrogCpu;
+extern	 KMUTEX g_MsrHookLock;
+
 
 #define DEVICE_NAME L"\\Device\\HyperFrog"		
 #define SYMBOL_NAME L"\\??\\HyperFrog"

@@ -14,6 +14,24 @@ void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 //当VT与符号都加载成功后会调用这个函数
 void Frog_CallRoutine(PDRIVER_OBJECT pObj)
 {
+
+    for (ULONG i = 0; i < sizeof(g_GetFunctionInfoList) / sizeof(SymbolGetFunctionInfoList); i++)
+    {
+        for (ULONG j = 0; j < Symbol_InfoListMax; j++)
+        {
+            if (strcmp(g_GetFunctionInfoList[i].InfoList[j].Name, Frog_MaxListFlag) == 0)
+            {
+                break;
+            }
+            if ((*g_GetFunctionInfoList[i].InfoList[j].ReceiveFunction) == NULL)
+            {
+                FrogBreak();
+                FrogPrint("Symbol Do not Get %s", g_GetFunctionInfoList[i].InfoList[j].Name);
+                return;
+            }
+        }
+    }
+
 	Frog_Hook();
 }
 
