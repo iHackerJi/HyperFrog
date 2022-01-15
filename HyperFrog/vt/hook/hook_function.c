@@ -7,7 +7,7 @@ NTSTATUS HookNtOpenProcess(
     PCLIENT_ID         ClientId
 )
 {
-    FrogPrint("HookNtOpenProcess");
+    FrogPrint("NtOpenProcess");
     return NtOpenProcess
     (
         ProcessHandle,
@@ -52,7 +52,6 @@ NTSTATUS HookNtQueryKey(
     PULONG                ResultLength
 )
 {
-    FrogPrint("ZwQueryKey");
     return ZwQueryKey
     (
         KeyHandle,

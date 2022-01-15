@@ -72,22 +72,22 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 
 void    vmexit_readmsr_handle(pFrog_GuestContext	Context)
 {
-    ULONG64		MsrValue = 0;
+    __int64 marValue = 0;
     switch (Context->Rcx)
     {
-        case kIa32Lstar:
-        {
-            MsrValue = g_origKisystemcall64;//·ÀÖ¹PG
-            break;
-        }
+    case kIa32Lstar:
+    {
+        marValue = Frog_getOrigKisystemcall64();//·ÀÖ¹PG
+        break;
+    }
         default:
         {
-            MsrValue = (ULONG64)__readmsr((ULONG)Context->Rcx);
+            marValue = (__int64)__readmsr((unsigned long)Context->Rcx);
             break;
         }
     }
-    Context->Rax = LODWORD(MsrValue);
-    Context->Rdx = HIDWORD(MsrValue);
+    Context->Rax = LODWORD(marValue);
+    Context->Rdx = HIDWORD(marValue);
 
 }
 void    vmexit_cpuid_handle(pFrog_GuestContext	    Context)

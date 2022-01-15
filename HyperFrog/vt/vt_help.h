@@ -1,4 +1,6 @@
 #pragma once
+typedef void (*PFN_FrogRunEachProcessor)(unsigned long ProcessorIndex);
+void Frog_RunEachProcessor(PFN_FrogRunEachProcessor Routine);
 
 bool CPUID_VmxIsSupport();
 bool MSR_VmxIsSupport();

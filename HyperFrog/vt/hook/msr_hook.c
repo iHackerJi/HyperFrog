@@ -1,9 +1,8 @@
 #include "public.h"
-ULONG64 g_origKisystemcall64 = 0;
 bool g_MsrHookEnableTable[MAX_SYSCALL_INDEX];
 unsigned long g_MsrHookArgUpCodeTable[MAX_SYSCALL_INDEX];
 void* g_MsrHookFunctionTable[MAX_SYSCALL_INDEX];
-
+__int64 g_origKisystemcall64 = 0;
 
 int Frog_SearchIndex(unsigned char* ExportData)
 {
@@ -80,7 +79,7 @@ void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
     }
 }
 
-bool  Frog_MsrHookEnable()
+bool  Frog_MsrHookInit()
 {
      UNICODE_STRING uFileName = {0};
      HANDLE hFileHandle = NULL;
@@ -132,27 +131,49 @@ bool  Frog_MsrHookEnable()
          result = true;
      } while (false);
 
-     g_origKisystemcall64 = __readmsr(kIa32Lstar);
-     __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
-
      if (pNtdll)    FrogExFreePool(pNtdll);
      return result;
 
 }
 
-bool Frog_MsrHookDisable()
+
+void Frog_RunEachProcessorToEnableMsrHook(unsigned long ProcessorIndex)
 {
-    KIRQL kIrql=0;
-    bool result = false;
-    kIrql = KeRaiseIrqlToDpcLevel();
-    if (g_origKisystemcall64)
-    {
-        __writemsr(kIa32Lstar, g_origKisystemcall64);
-        result = true;
-        goto _Exit;
-    }
-_Exit:
-    KeLowerIrql(kIrql);
-    return result;
+    pFrogVmx		pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[ProcessorIndex];
+    //pForgVmxEntry->origKisystemcall64 = __readmsr(kIa32Lstar);
+    __writemsr(kIa32Lstar, (ULONG64)FakeKiSystemCall64);
+}
+   
+bool Frog_MsrHookEnable()
+{
+    //参考了下英特尔 第三卷 35章节，这个MSR寄存器是每个核特有的，所以要每个核都HOOK
+    g_origKisystemcall64 = __readmsr(kIa32Lstar);
+    Frog_RunEachProcessor(Frog_RunEachProcessorToEnableMsrHook);
+    return true;
 }
 
+void Frog_RunEachProcessorToDisableMsrHook(unsigned long ProcessorIndex)
+{
+    pFrogVmx		pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[ProcessorIndex];
+    if (g_origKisystemcall64 == 0)
+    {
+        FrogBreak();
+        return;
+    }
+   // __writemsr(kIa32Lstar, pForgVmxEntry->origKisystemcall64);
+    __writemsr(kIa32Lstar, g_origKisystemcall64);
+}
+
+bool Frog_MsrHookDisable()
+{
+    Frog_RunEachProcessor(Frog_RunEachProcessorToDisableMsrHook);
+    return true;
+}
+
+__int64 Frog_getOrigKisystemcall64()
+{
+    unsigned long ProcessorIndex = KeGetCurrentProcessorNumber();
+    pFrogVmx		pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[ProcessorIndex];
+   // return    pForgVmxEntry->origKisystemcall64;
+    return 0;
+}

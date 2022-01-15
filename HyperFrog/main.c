@@ -31,7 +31,7 @@ void Frog_CallRoutine(PDRIVER_OBJECT pObj)
             }
         }
     }
-
+    Frog_MsrHookInit();
 	Frog_Hook();
 }
 
@@ -39,7 +39,6 @@ NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
 	pDriverObj->DriverUnload = UnloadDriver;
 	FrogRetCode	fStatus = FrogSuccess;
 	NTSTATUS		nStatus = STATUS_SUCCESS;
-
 	nStatus = InitComm(pDriverObj);
 	if (!NT_SUCCESS(nStatus))
 	{

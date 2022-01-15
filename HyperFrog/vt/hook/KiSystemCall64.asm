@@ -3,13 +3,18 @@ FakeKiSystemCall64	PROTO
 extern g_MsrHookEnableTable:DB
 extern g_MsrHookFunctionTable:DQ
 extern g_MsrHookArgUpCodeTable:DB
-extern g_origKisystemcall64:DQ
 extern g_KiSystemServiceCopyEnd:DQ 
+extern g_origKisystemcall64:DQ
 extern MmUserProbeAddress:DQ
+extern Frog_getOrigKisystemcall64 : proc
+
 
 USERMD_STACK_GS = 10h
 KERNEL_STACK_GS = 1A8h
 MAX_SYSCALL_INDEX = 1000h
+
+.data
+origKisystemcall64 DQ 0;
 
 .code
 
@@ -42,9 +47,17 @@ FakeKiSystemCall64 ENDP
 ;
 ; *********************************************************
 KiSystemCall64 PROC
+    ;int 3
+   ;push rax
+   ;push rcx
+   ;call Frog_getOrigKisystemcall64
+   ;mov origKisystemcall64,rax
+   ;pop rcx
+   ;pop rax
 	mov         rsp, gs:[USERMD_STACK_GS]   ; Usermode RSP
 	swapgs                                  ; Switch to usermode GS
-	jmp         [g_origKisystemcall64]         ; Jump back to the old syscall handler
+    jmp         [g_origKisystemcall64]
+	;jmp         [origKisystemcall64]         ; Jump back to the old syscall handler
 KiSystemCall64 ENDP
 
 ; *********************************************************
@@ -107,7 +120,7 @@ KiSystemServiceRepeat_Emulate PROC
     ; RAX = [OUT] number of parameters
     ; R10 = [OUT] function address
     ; R11 = [I/O] trashed
-
+    ;int 3;
     lea         r11, offset g_MsrHookFunctionTable
     mov       r10, qword ptr [r11 + rax * 8h]
 

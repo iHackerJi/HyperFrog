@@ -52,15 +52,14 @@ typedef struct _FrogMtrrFange
 }FrogMtrrFange,*PFrogMtrrFange;
 
 typedef struct _FrogCpu {
+	pFrogVmx						pForgVmxEntrys;
 	ULONG							ProcessOrNumber;
 	Ia32FeatureControlMsr	OrigFeatureControlMsr;
-	pFrogVmx						pForgVmxEntrys;
     ULONG64						KernelCr3;
-    bool                        EnableEpt;
 	FrogMtrrFange					MtrrRange[96];
 	ULONG							NumberOfEnableMemRangs;
-
-	bool						EnableHookMsr;
+	bool									EnableHookMsr;
+	bool									EnableEpt;
 }FrogCpu,*pFrogCpu;
 
 typedef		enum _FrogRetCode {

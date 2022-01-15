@@ -227,40 +227,29 @@ FrogRetCode 	Frog_EnableHyper()
 //--------------------------------------DisableHype
 
 
+void RunEachProcessToDisableHyper(unsigned long ProcessorIndex)
+{
+    pFrogVmx		pForgVmxEntry = NULL;
+    pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[ProcessorIndex];
+
+    if (Frog_VmCall(FrogExitTag, 0, 0, 0))
+    {
+        Cr4 cr4 = { 0 };
+        cr4.all = __readcr4();
+        cr4.fields.vmxe = 0;
+        __writecr4(cr4.all);
+
+        Frog_FreeHyperRegion(pForgVmxEntry);
+    }
+}
+
 FrogRetCode	Frog_DisableHyper() 
 {
-    ULONG       NumberOfProcessors = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
-    for (ULONG  ProcessIndex = 0 ; ProcessIndex < NumberOfProcessors ; ProcessIndex++)
-    {
-        PROCESSOR_NUMBER          ProcessNumber = {0};
-        GROUP_AFFINITY                  affinity;
-        GROUP_AFFINITY                  Origaffinity;
-    
-        KeGetProcessorNumberFromIndex(ProcessIndex, &ProcessNumber);
-        RtlSecureZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
-        affinity.Group = ProcessNumber.Group;
-        affinity.Mask = (KAFFINITY)1ull << ProcessNumber.Number;
-        KeSetSystemGroupAffinityThread(&affinity, &Origaffinity);
-    
-        pFrogVmx		pForgVmxEntry = NULL;
-        pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[ProcessIndex];
-    
-        if (Frog_VmCall(FrogExitTag, 0, 0, 0))
-        {
-            Cr4 cr4 = { 0 };
-            cr4.all =  __readcr4();
-            cr4.fields.vmxe = 0;
-            __writecr4(cr4.all);
-        
-            Frog_FreeHyperRegion(pForgVmxEntry);
-        }
-        KeRevertToUserGroupAffinityThread(&Origaffinity);
-    }
+    Frog_RunEachProcessor(RunEachProcessToDisableHyper);
     Frog_UnHook();
     __writemsr(kIa32FeatureControl, g_FrogCpu->OrigFeatureControlMsr.all);
     if (g_FrogCpu->pForgVmxEntrys)		FrogExFreePool(g_FrogCpu->pForgVmxEntrys);
 	if (g_FrogCpu)		FrogExFreePool(g_FrogCpu);
-    FrogBreak();
     sleep(15000);
 	return	FrogSuccess;
 }

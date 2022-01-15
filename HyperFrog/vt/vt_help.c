@@ -555,3 +555,24 @@ Frog_UnHook()
         Frog_MsrHookDisable();
     }
 }
+
+void Frog_RunEachProcessor(PFN_FrogRunEachProcessor Routine)
+{
+    ULONG       NumberOfProcessors = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    for (ULONG ProcessIndex = 0; ProcessIndex < NumberOfProcessors; ProcessIndex++)
+    {
+        PROCESSOR_NUMBER          ProcessNumber = { 0 };
+        GROUP_AFFINITY                  affinity;
+        GROUP_AFFINITY                  Origaffinity;
+
+        KeGetProcessorNumberFromIndex(ProcessIndex, &ProcessNumber);
+        RtlSecureZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+        affinity.Group = ProcessNumber.Group;
+        affinity.Mask = (KAFFINITY)1ull << ProcessNumber.Number;
+        KeSetSystemGroupAffinityThread(&affinity, &Origaffinity);
+
+        Routine(ProcessIndex);
+
+        KeRevertToUserGroupAffinityThread(&Origaffinity);
+    }
+}
