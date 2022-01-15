@@ -12,7 +12,7 @@ PVOID Pfn_NtUserGetThreadState;
 PVOID Pfn_NtUserPeekMessage;
 ObKillProcessType Pfn_ObKillProcess;
 PVOID g_KiSystemServiceCopyEnd;
-
+PKSERVICE_TABLE_DESCRIPTOR g_KeServiceDescriptorTable[NUMBER_SERVICE_TABLES];
 //最多支持 Symbol_InfoListMax 个获取的信息
 
 //这个列表除了可以获取函数之外还可以获取全局变量
@@ -27,6 +27,7 @@ static	SymbolGetFunctionInfoList	g_GetFunctionInfoList[] =
             {"IopInvalidDeviceRequest",&Pfn_IopInvalidDeviceRequest},
             {"ObKillProcess",(PVOID*)&Pfn_ObKillProcess},
             {"KiSystemServiceCopyEnd",(PVOID*)&g_KiSystemServiceCopyEnd},
+            {"KeServiceDescriptorTable",(PVOID*)&g_KeServiceDescriptorTable},
             {Frog_MaxListFlag,0}
         }
     },

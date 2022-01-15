@@ -1,7 +1,9 @@
 #include "public.h"
 ULONG64 g_origKisystemcall64 = 0;
 bool g_MsrHookEnableTable[MAX_SYSCALL_INDEX];
+unsigned long g_MsrHookArgUpCodeTable[MAX_SYSCALL_INDEX];
 void* g_MsrHookFunctionTable[MAX_SYSCALL_INDEX];
+
 
 int Frog_SearchIndex(unsigned char* ExportData)
 {
@@ -24,6 +26,11 @@ int Frog_SearchIndex(unsigned char* ExportData)
         }
     }
     return 0;
+}
+
+unsigned char Frog_GetFunctionArgCount(int index)
+{
+    return ((*g_KeServiceDescriptorTable)[0].Base[index] & 0xf) * 8;
 }
 
 void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
@@ -65,6 +72,7 @@ void Frog_InitMsrHookTable(char * pNtdll, ULONG NtdllSize)
                 if (index != 0)
                 {
                     InterlockedExchange8(&g_MsrHookEnableTable[index], true);
+                    InterlockedExchange(&g_MsrHookArgUpCodeTable[index], Frog_GetFunctionArgCount(index));
                     InterlockedExchange64((PLONG64)&g_MsrHookFunctionTable[index], (LONG64)g_MsrHookTable[j].hookFunction);
                 }
             }
@@ -150,8 +158,7 @@ NTSTATUS HookNtOpenProcess(
     PCLIENT_ID         ClientId
 )
 {
-
-    return orgNtOpenProcess
+    return NtOpenProcess
     (
         ProcessHandle,
         DesiredAccess,
@@ -160,3 +167,49 @@ NTSTATUS HookNtOpenProcess(
     );
 }
 
+ NTSTATUS HookNtReadFile(
+    HANDLE           FileHandle,
+    HANDLE           Event,
+    PIO_APC_ROUTINE  ApcRoutine,
+    PVOID            ApcContext,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PVOID            Buffer,
+    ULONG            Length,
+    PLARGE_INTEGER   ByteOffset,
+    PULONG           Key
+)
+{
+     __debugbreak();
+
+    return NtReadFile
+    (
+        FileHandle,
+        Event,
+        ApcRoutine,
+        ApcContext,
+        IoStatusBlock,
+        Buffer,
+        Length,
+        ByteOffset,
+        Key
+    );
+}
+
+ NTSTATUS HookNtQueryKey(
+     HANDLE                KeyHandle,
+     KEY_INFORMATION_CLASS KeyInformationClass,
+     PVOID                 KeyInformation,
+     ULONG                 Length,
+     PULONG                ResultLength
+ )
+ {
+     __debugbreak();
+     return ZwQueryKey
+     (
+         KeyHandle,
+         KeyInformationClass,
+         KeyInformation,
+         Length,
+         ResultLength
+     );
+ }

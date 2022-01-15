@@ -6,12 +6,15 @@ typedef struct _MsrHookTable
     PVOID hookFunction;
 }MsrHookTable, * pMsrHookTable;
 
-PFN_NtOpenProcess orgNtOpenProcess;
 
 static MsrHookTable g_MsrHookTable[] =
 {
+    //{
+    //    "NtOpenProcess",
+    //    (PVOID)HookNtOpenProcess,
+    //},
     {
-        "NtOpenProcess",
-        (PVOID)HookNtOpenProcess,
+        "NtQueryKey",
+        (PVOID)HookNtQueryKey,
     }
 };

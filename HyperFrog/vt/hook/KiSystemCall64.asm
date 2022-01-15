@@ -2,6 +2,7 @@ FakeKiSystemCall64	PROTO
 
 extern g_MsrHookEnableTable:DB
 extern g_MsrHookFunctionTable:DQ
+extern g_MsrHookArgUpCodeTable:DB
 extern g_origKisystemcall64:DQ
 extern g_KiSystemServiceCopyEnd:DQ 
 extern MmUserProbeAddress:DQ
@@ -25,9 +26,7 @@ MAX_SYSCALL_INDEX = 1000h
 FakeKiSystemCall64 PROC
     ;cli                                    ; Disable interrupts
     swapgs                                  ; swap GS base to kernel PCR
-    int 3
     mov         gs:[USERMD_STACK_GS], rsp   ; save user stack pointer
-
     cmp         rax, MAX_SYSCALL_INDEX      ; Is the index larger than the array size?
     jge         KiSystemCall64              ;
 
@@ -57,7 +56,6 @@ KiSystemCall64 ENDP
 KiSystemCall64_Emulate PROC
     ; NOTE:
     ; First 2 lines are included in SyscallEntryPoint
-
     mov         rsp, gs:[KERNEL_STACK_GS]   ; set kernel stack pointer
     push        2Bh                         ; push dummy SS selector
     push        qword ptr gs:[10h]          ; push user stack pointer
@@ -113,27 +111,29 @@ KiSystemServiceRepeat_Emulate PROC
     lea         r11, offset g_MsrHookFunctionTable
     mov       r10, qword ptr [r11 + rax * 8h]
 
-    and         eax,0fh
-     jz   NoPushStackKiSystemServiceCopyEnd ;不需要压栈
+    lea         r11, offset g_MsrHookArgUpCodeTable
+    movzx       rax, byte ptr [r11 + rax * 4h]   ; RAX = paramter count
 
-     shl         eax,3
-     lea     rsp, [rsp-70h]  ; 分配新的栈空间存放，又用户栈复制来的参数
+    ;对栈的处理，HyperBone没有处理这部分所以只能HOOK 4个参数一下的函数
+
+     lea     rsp, [rsp-70h]  ; 分配新的栈空间存放，使用 用户栈复制来的参数
      lea     rdi, [rsp+18h]
      mov     rsi, [rbp+100h] ; TRAP_FRAME.RSP
      lea     rsi, [rsi+20h]  ; 忽略用户栈中的返回值
-                                    ; 忽略为寄存器参数预留的栈空间
+                         ; 忽略为寄存器参数预留的栈空间
+
      test    byte ptr [rbp+0F0h], 1 ; TRAP_FRAME.SegCs判断SYSCALL是否为用户模式
-     jz   PushStackKiSystemServiceCopyEnd
-     cmp     rsi,  MmUserProbeAddress
-     cmovnb  rsi,  MmUserProbeAddress
+     jz       KiSystemServiceCopyEnd
+     cmp     rsi, [MmUserProbeAddress]
+     cmovnb  rsi, [MmUserProbeAddress]
      nop     dword ptr [rax+00000000h]
-PushStackKiSystemServiceCopyEnd:
-     lea r11,g_KiSystemServiceCopyEnd
+KiSystemServiceCopyEnd:
+
+     mov r11,qword ptr [g_KiSystemServiceCopyEnd]
      sub r11,rax
+
      jmp r11
 
-NoPushStackKiSystemServiceCopyEnd:
-     jmp [g_KiSystemServiceCopyEnd]
     ;lea         r11, offset ArgTble
     ;movzx       rax, byte ptr [r11 + rax]   ; RAX = paramter count
 
