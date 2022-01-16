@@ -31,7 +31,8 @@ void Frog_CallRoutine(PDRIVER_OBJECT pObj)
             }
         }
     }
-    Frog_MsrHookInit();
+
+    Frog_Init();
 	Frog_Hook();
 }
 

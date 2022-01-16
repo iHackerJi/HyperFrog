@@ -31,3 +31,4 @@ void Frog_BuildEpt(pFrogVmx pForgVmxEntry);
 void SetEptMemoryByMttrInfo(pFrogVmx pForgVmxEntry, int i,int j);
 void Frog_Hook();
 void Frog_UnHook();
+bool Frog_Init();

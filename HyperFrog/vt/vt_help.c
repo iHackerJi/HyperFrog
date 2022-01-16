@@ -1,4 +1,5 @@
 #include "public.h"
+unsigned long g_majorVersion = 0;
 
 bool
 CPUID_VmxIsSupport()
@@ -537,7 +538,25 @@ Frog_GetMtrrInfo()
 
 }
 
+bool
+Frog_Init()
+{
+	RTL_OSVERSIONINFOW	version = {0};
+	RtlGetVersion(&version);
 
+	if (version.dwMajorVersion != 10 && version.dwMajorVersion != 6 )//版本不支持
+	{
+		return false;
+	}
+	g_majorVersion = version.dwMajorVersion;
+
+	if (Frog_MsrHookInit() == false)
+	{
+		FrogBreak();
+		FrogPrint("MsrHookInit Fail");
+	}
+	return true;
+}
 void
 Frog_Hook()
 {

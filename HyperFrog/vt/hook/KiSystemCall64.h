@@ -17,3 +17,4 @@ extern ULONG64 offset_Kthread_MiscFlags;
 extern ULONG64 offset_Kthread_Ucb;
 extern ULONG64 offset_Kthread_TebMappedLowVa;
 extern ULONG64 offset_Kthread_Teb;
+extern unsigned long g_majorVersion;
