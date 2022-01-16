@@ -14,7 +14,7 @@ void	UnloadDriver(PDRIVER_OBJECT DriverObject) {
 //当VT与符号都加载成功后会调用这个函数
 void Frog_CallRoutine(PDRIVER_OBJECT pObj)
 {
-
+    FrogPrint("Run CallRoutine");
     for (ULONG i = 0; i < sizeof(g_GetFunctionInfoList) / sizeof(SymbolGetFunctionInfoList); i++)
     {
         for (ULONG j = 0; j < Symbol_InfoListMax; j++)
@@ -35,7 +35,9 @@ void Frog_CallRoutine(PDRIVER_OBJECT pObj)
 	Frog_Hook();
 }
 
-NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
+NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) 
+{
+    FrogPrint("Start~");
 	pDriverObj->DriverUnload = UnloadDriver;
 	FrogRetCode	fStatus = FrogSuccess;
 	NTSTATUS		nStatus = STATUS_SUCCESS;
@@ -46,6 +48,8 @@ NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg) {
         FrogPrint("InitComm Error");
         return STATUS_UNSUCCESSFUL;
 	}
+    FrogPrint("InitComm Success~");
+
     //申请 ForgVmxRegion
     if (!Forg_AllocateForgVmxRegion()) {
         FrogBreak();

@@ -136,7 +136,6 @@ bool  Frog_MsrHookInit()
 
 }
 
-
 void Frog_RunEachProcessorToEnableMsrHook(unsigned long ProcessorIndex)
 {
     pFrogVmx		pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[ProcessorIndex];

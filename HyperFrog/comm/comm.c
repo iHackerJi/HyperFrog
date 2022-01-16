@@ -5,6 +5,16 @@ UNICODE_STRING g_DeviceName = RTL_CONSTANT_STRING(DEVICE_NAME);
 UNICODE_STRING g_SymbolName = RTL_CONSTANT_STRING(SYMBOL_NAME);
 bool g_DeviceAndSymbolLinkDelete = false;
 
+ULONG64 Offset_Ethread_TrapFrame = 0;
+ULONG64 Offset_Ethread_SystemCallNumber = 0;
+ULONG64 Offset_Ethread_FirstArgument = 0;
+ULONG64 Offset_Ethread_ThreadFlags = 0;
+ULONG64 Offset_Ethread_CombinedApcDisable = 0;
+ULONG64 Offset_Ethread_MiscFlags = 0;
+ULONG64 Offset_Ethread_Ucb = 0;
+ULONG64 Offset_Ethread_TebMappedLowVa = 0;
+ULONG64 Offset_Ethread_Teb = 0;
+
 NTSTATUS DispatchCommon(PDEVICE_OBJECT pObject, PIRP pIrp)
 {
     pIrp->IoStatus.Status = STATUS_SUCCESS;
@@ -90,7 +100,6 @@ NTSTATUS DispatchIoctrl(PDEVICE_OBJECT pObject, PIRP pIrp)
     {
         PSymbolGetTypeOffsetList		GetTypeInfoList = (PSymbolGetTypeOffsetList)pInputBuff;
         ULONG	ListCount = sizeof(g_GetTypeOffsetInfoList) / sizeof(SymbolGetTypeOffsetList);
-
         for (ULONG i = 0; i < ListCount; i++)
         {
             for (ULONG j = 0; j < Symbol_InfoListMax; j++)
@@ -99,7 +108,7 @@ NTSTATUS DispatchIoctrl(PDEVICE_OBJECT pObject, PIRP pIrp)
                 {
                     break;
                 }
-                *g_GetTypeOffsetInfoList[i].InfoList[j].Offset = (ULONG64)GetTypeInfoList[i].InfoList[j].Offset;
+                (*g_GetTypeOffsetInfoList[i].InfoList[j].Offset) = (ULONG64)GetTypeInfoList[i].InfoList[j].Offset;
             }
         }
         break;

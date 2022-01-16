@@ -74,11 +74,9 @@ BOOL CALLBACK symbol::EnumSymFunctionRoutine(
     PVOID UserContext
 ) {
     PSymbolGetFunction		Info = (PSymbolGetFunction)UserContext;
-
     unsigned long					ListNumber = 0;
     for (unsigned long i = 0; i < global::listCount; i++)
     {
-
         if (strcmp(pSymInfo->Name, Info[i].Name) == 0)
         {
             Info[i].ReceiveFunction = (PVOID*)pSymInfo->Address;
@@ -96,7 +94,6 @@ BOOL CALLBACK symbol::EnumSymTypeRoutine(
     _In_opt_ PVOID UserContext
 )
 {
-
     PSymbolGetTypeOffset Info = (PSymbolGetTypeOffset)UserContext;
     bool IsFlags = false;
 
@@ -141,7 +138,7 @@ BOOL CALLBACK symbol::EnumSymTypeRoutine(
                 result = SymGetTypeInfo(global::hProcess, (unsigned long long)ModuleBase, pSymInfo->Index, TI_FINDCHILDREN, SonList);
                 if (!result)
                 {
-                    tools::FrogPrintfEx("SymGetTypeInfo Erro =%d \r\n", GetLastError());
+                    tools::FrogPrintfEx("SymGetTypeInfo Error =%d \r\n", GetLastError());
                     break;
                 }
 
@@ -149,7 +146,6 @@ BOOL CALLBACK symbol::EnumSymTypeRoutine(
                 {
                     swprintf(SonName, Symbol_NameLength, L"%hs", Info[K].SonName);
                     SymGetTypeInfo(global::hProcess, (unsigned long long)ModuleBase, SonList->ChildId[i], TI_GET_SYMNAME, &TempName);
-
                     if (wcscmp(TempName, SonName) == 0)
                     {
                         result = SymGetTypeInfo(global::hProcess, (unsigned long long)ModuleBase, SonList->ChildId[i], TI_GET_OFFSET, &Offset);

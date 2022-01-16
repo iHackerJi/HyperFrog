@@ -543,6 +543,7 @@ Frog_Hook()
 {
     if (g_FrogCpu->EnableHookMsr)
     {
+		FrogPrint("EnableHookMsr");
         Frog_MsrHookEnable();
     }
 }
@@ -552,6 +553,7 @@ Frog_UnHook()
 {
     if (g_FrogCpu->EnableHookMsr)
     {
+		FrogPrint("HyperFrog DisableMsrHook");
         Frog_MsrHookDisable();
     }
 }

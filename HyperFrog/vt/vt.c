@@ -183,6 +183,7 @@ VOID	Frog_DpcRunHyper(
             goto	_HyperInitExit;
         }
 
+		FrogPrint("Start Success [%d]~", CpuNumber);
         pForgVmxEntry->HyperIsEnable = true;
         if (__vmx_vmlaunch())
         {
@@ -240,6 +241,7 @@ void RunEachProcessToDisableHyper(unsigned long ProcessorIndex)
         __writecr4(cr4.all);
 
         Frog_FreeHyperRegion(pForgVmxEntry);
+		FrogPrint("Exit [%d] ~ ", ProcessorIndex);
     }
 }
 
