@@ -103,9 +103,9 @@ KiSystemCall64_Emulate PROC
     mov         byte ptr [rbp-55h], 2h      ; set service active
     mov         rbx, gs:[188h]              ; get current thread 
 
-    mov        r10,rbx
-    add         r10,[offset_Kthread_TrapFrame]
-    prefetchw   byte ptr [r10]         ;prefetchw   byte ptr [rbx+offset_Kthread_TrapFrame]          ; 预取 KTHREAD.TrapFrame 
+    mov        r11,rbx
+    add         r11,[offset_Kthread_TrapFrame]
+    prefetchw   byte ptr [r11]         ;prefetchw   byte ptr [rbx+offset_Kthread_TrapFrame]          ; 预取 KTHREAD.TrapFrame 
 
     stmxcsr     dword ptr [rbp-54h]         ; save current MXCSR
     ldmxcsr     dword ptr gs:[180h]         ; set default MXCSR
@@ -130,25 +130,25 @@ pass_KiSaveDebugRegisterState:
     cmp     rax, [MmUserProbeAddress]
     cmovnb  rax, [MmUserProbeAddress] ; 判断GS BASE 是否 低于用户空间，如果不低于则存到RAX
 
-     mov     r10,rbx
-     add      r10,[offset_Kthread_Teb]
-     cmp     [r10], rax ;    cmp     [rbx+offset_Kthread_Teb], rax ; 判断是不是当前线程TEB
+     mov     r11,rbx
+     add      r11,[offset_Kthread_Teb]
+     cmp     [r11], rax ;    cmp     [rbx+offset_Kthread_Teb], rax ; 判断是不是当前线程TEB
     jz set_thread_UmsPerformingSyscall
-     mov     r10,rbx
-     add      r10,[offset_Kthread_TebMappedLowVa]
-     cmp     [r10], rax        ; cmp     [rbx+offset_Kthread_TebMappedLowVa], rax ;KTHREAD.TebMappedLowVa 
+     mov     r11,rbx
+     add      r11,[offset_Kthread_TebMappedLowVa]
+     cmp     [r11], rax        ; cmp     [rbx+offset_Kthread_TebMappedLowVa], rax ;KTHREAD.TebMappedLowVa 
     jz set_thread_UmsPerformingSyscall
-     mov     r10,rbx
-     add      r10,[offset_Kthread_Ucb]
-     mov     rdx, [r10] ; mov     rdx, [rbx+offset_Kthread_Ucb] ;KTHREAD.Ucb
+     mov     r11,rbx
+     add      r11,[offset_Kthread_Ucb]
+     mov     rdx, [r11] ; mov     rdx, [rbx+offset_Kthread_Ucb] ;KTHREAD.Ucb
 
-     mov     r10,rbx
-     add      r10,[offset_Kthread_MiscFlags]
-     bts     dword ptr [r10], 0Bh   ;    bts     dword ptr [rbx+offset_Kthread_MiscFlags], 0Bh 
+     mov     r11,rbx
+     add      r11,[offset_Kthread_MiscFlags]
+     bts     dword ptr [r11], 0Bh   ;    bts     dword ptr [rbx+offset_Kthread_MiscFlags], 0Bh 
 
-     mov     r10,rbx
-     add      r10,[offset_Kthread_CombinedApcDisable]
-     dec     word ptr [r10]         ;    dec     word ptr [rbx+offset_Kthread_CombinedApcDisable] ; KTHREAD.CombinedApcDisable
+     mov     r11,rbx
+     add      r11,[offset_Kthread_CombinedApcDisable]
+     dec     word ptr [r11]         ;    dec     word ptr [rbx+offset_Kthread_CombinedApcDisable] ; KTHREAD.CombinedApcDisable
     mov     [rdx+80h], rax
     ;sti
     call    [g_KiUmsCallEntry]
@@ -157,17 +157,13 @@ pass_KiSaveDebugRegisterState:
  set_thread_UmsPerformingSyscall:
     test    byte ptr [rbx+3], 40h
     jz debug_restore_reg
-    mov     r10,rbx
-    add      r10,[offset_Kthread_ThreadFlags]
-    lock bts dword ptr [r10], 8 ;    lock bts dword ptr [rbx+offset_Kthread_ThreadFlags], 8
+    mov     r11,rbx
+    add      r11,[offset_Kthread_ThreadFlags]
+    lock bts dword ptr [r11], 8 ;    lock bts dword ptr [rbx+offset_Kthread_ThreadFlags], 8
 
 debug_restore_reg:
     mov     r8, [rbp-38h]   ; R8
     mov     r9, [rbp-30h]   ; R9
-restore_reg:
-    mov     rax, [rbp-50h]  ; RAX
-    mov     rcx, [rbp-48h]  ; RCX
-    mov     rdx, [rbp-40h]  ; RDX 拿到参数，与调用号
 
 by_pass_save_debug:
     ;sti                                    ; enable interrupts
@@ -175,20 +171,20 @@ by_pass_save_debug:
      mov     rcx, [rbp-48h]  ; RCX
      mov     rdx, [rbp-40h]  ; RDX 拿到参数，与调用号
 
-    mov     r10,rbx
-    add      r10,[offset_Kthread_FirstArgument]
-    mov     [r10], rcx      ;    mov     [rbx+offset_Kthread_FirstArgument], rcx 
+    mov     r11,rbx
+    add      r11,[offset_Kthread_FirstArgument]
+    mov     [r11], rcx      ;    mov     [rbx+offset_Kthread_FirstArgument], rcx 
 
-    mov     r10,rbx
-    add      r10,[offset_Kthread_SystemCallNumber]
-    mov     [r10], eax      ; mov         [rbx+offset_Kthread_SystemCallNumber], eax 
+    mov     r11,rbx
+    add      r11,[offset_Kthread_SystemCallNumber]
+    mov     [r11], eax      ; mov         [rbx+offset_Kthread_SystemCallNumber], eax 
 KiSystemCall64_Emulate ENDP
 
 KiSystemServiceStart_Emulate PROC
     ; _KTHREAD.TrapFrame 求索引号
-    mov     r10,rbx       
-    add      r10,[offset_Kthread_TrapFrame]
-    mov     [r10], rsp          ; mov         [rbx+offset_Kthread_TrapFrame], rsp 
+    mov     r11,rbx       
+    add      r11,[offset_Kthread_TrapFrame]
+    mov     [r11], rsp          ; mov         [rbx+offset_Kthread_TrapFrame], rsp 
 
     mov         edi, eax
     shr         edi, 7

@@ -1,5 +1,5 @@
 #include "public.h"
-
+void    vmexit_exception_handle(pFrog_GuestContext	Context);
 void    vmexit_readmsr_handle(pFrog_GuestContext	Context);
 void    vmexit_cpuid_handle(pFrog_GuestContext	    Context);
 void    vmexit_craccess_handle(pFrog_GuestContext	Context);
@@ -17,6 +17,8 @@ EXTERN_C VOID		vmexit_handle(pFrog_GuestContext	Context)
 
     switch (ExitInfo.fields.reason)
     {
+    case ExitExternalInterrupt:
+        vmexit_exception_handle(Context);
     case	ExitCpuid:
         vmexit_cpuid_handle(Context);
         break;
@@ -192,3 +194,13 @@ void    vmexit_vmcall_handle(pFrog_GuestContext	Context)
 
 }
 
+void    vmexit_exception_handle(pFrog_GuestContext	Context)
+{
+    INTERRUPTION_INFORMATION ExceptionInfo = { 0 };
+    ExceptionInfo.all =  Frog_Vmx_Read(VM_EXIT_INTR_INFO);
+    unsigned long type = ExceptionInfo.fields.interruption_type;
+    unsigned long vector = ExceptionInfo.fields.vector;
+    if (vector == ia32_debug_exception)
+    {
+    }
+}

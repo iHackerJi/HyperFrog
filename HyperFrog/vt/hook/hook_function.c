@@ -1,5 +1,6 @@
 #include "public.h"
 
+
 NTSTATUS HookNtOpenProcess(
     PHANDLE            ProcessHandle,
     ACCESS_MASK        DesiredAccess,
@@ -7,6 +8,10 @@ NTSTATUS HookNtOpenProcess(
     PCLIENT_ID         ClientId
 )
 {
+    if (KeGetCurrentIrql() != PASSIVE_LEVEL)
+        return STATUS_UNSUCCESSFUL;
+
+    FrogBreak();
     FrogPrint("NtOpenProcess");
     return NtOpenProcess
     (
@@ -61,3 +66,5 @@ NTSTATUS HookNtQueryKey(
         ResultLength
     );
 }
+
+

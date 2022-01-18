@@ -26,3 +26,4 @@ NTSTATUS HookNtQueryKey(
     ULONG                 Length,
     PULONG                ResultLength
 );
+

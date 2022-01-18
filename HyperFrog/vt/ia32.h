@@ -26,8 +26,33 @@
 #define MEMORY_TYPE_WRITE_BACK      0x00000006
 #define MEMORY_TYPE_INVALID         0x000000FF
 
+//“Ï≥£¡–±Ì
+#define ia32_divide_error				0
+#define ia32_debug_exception			1
+#define ia32_nmi_interrupt				2
+#define ia32_breakpoint					3
+#define ia32_overflow					4
+#define ia32_exceed_bound_range			5
+#define ia32_invalid_opcode				6
+#define ia32_no_math_coprocessor		7
+#define ia32_double_fault				8
+#define ia32_segment_overrun			9
+#define ia32_invalid_tss				10
+#define ia32_segment_not_present		11
+#define ia32_stack_segment_fault		12
+#define ia32_general_protection			13
+#define ia32_page_fault					14
+#define ia32_x87_fp_error				16
+#define ia32_alignment_check			17
+#define ia32_machine_check				18
+#define ia32_simd_exception				19
+#define ia32_virtualization_exception	20
+#define ia32_control_protection			21
+
 #define ia32_cr4_vmxe			13
 #define ia32_cr4_vmxe_bit		0x2000
+
+
 
 //-------------Enum
 
@@ -77,6 +102,8 @@ typedef struct _MTRR_VARIABLE_BASE
         UINT64 AsUlonglong;
     };
 } MTRR_VARIABLE_BASE, * PMTRR_VARIABLE_BASE;
+
+
 
 typedef struct _MTRR_VARIABLE_MASK
 {
@@ -300,6 +327,35 @@ enum MovCrAccessType {
 
 
 //union----------------------------------
+
+typedef union _Dr6
+{
+    unsigned long long flags;
+    struct
+    {
+        unsigned long long breakpoint_condition : 4;
+        unsigned long long reserved_1 : 8; // always 1
+        unsigned long long reserved_2 : 1; // always 0
+        unsigned long long debug_register_access_detected : 1;
+        unsigned long long single_instruction : 1;
+        unsigned long long task_switch : 1;
+        unsigned long long restricted_transactional_memory : 1;
+        unsigned long long reserved_3 : 15; // always 1
+    };
+}Dr6;
+
+typedef union _INTERRUPTION_INFORMATION{
+    ULONG32 all;
+    struct {
+        ULONG32 vector : 8;             //!< [0:7]
+        ULONG32 interruption_type : 3;  //!< [8:10]
+        ULONG32 error_code_valid : 1;   //!< [11]
+        ULONG32 nmi_unblocking : 1;     //!< [12]
+        ULONG32 reserved : 18;          //!< [13:30]
+        ULONG32 valid : 1;              //!< [31]
+    } fields;
+}INTERRUPTION_INFORMATION,*PINTERRUPTION_INFORMATION;
+
 
 typedef union _Eptp
 {
