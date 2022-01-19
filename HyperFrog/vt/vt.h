@@ -39,6 +39,8 @@ typedef struct _FrogVmx {
 	ULONG64		VmxOnAreaPhysicalAddr;
     ULONG64		VmxVmcsAreaPhysicalAddr;
 	ULONG			ProcessorNumber;
+
+	ULONG64		VmxExitTime;
 }FrogVmx, *pFrogVmx;
 
 
@@ -71,27 +73,6 @@ typedef		enum _FrogRetCode {
 	ForgVmptrldError,
 	FrogUnloadError
 }FrogRetCode;
-
-
-typedef struct _Frog_GuestContext
-{
-	ULONG64 Rax;
-	ULONG64 Rcx;
-	ULONG64 Rdx;
-	ULONG64 Rbx;
-    ULONG64 Rsp;
-	ULONG64 Rbp;
-	ULONG64 Rsi;
-	ULONG64 Rdi;
-	ULONG64 R8;
-	ULONG64 R9;
-	ULONG64 R10;
-	ULONG64 R11;
-	ULONG64 R12;
-	ULONG64 R13;
-	ULONG64 R14;
-	ULONG64 R15;
-}Frog_GuestContext, *pFrog_GuestContext;
 
 FrogRetCode Frog_EnableHyper();
 FrogRetCode Frog_DisableHyper();

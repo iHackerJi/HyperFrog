@@ -26,28 +26,31 @@
 #define MEMORY_TYPE_WRITE_BACK      0x00000006
 #define MEMORY_TYPE_INVALID         0x000000FF
 
+#define EVENT_INJECT_VECTOR_NMI 2 //非屏蔽中断
+#define EVENT_INJECT_VECTOR_OTHER 2 //异常
+
 //异常列表
-#define ia32_divide_error				0
-#define ia32_debug_exception			1
-#define ia32_nmi_interrupt				2
-#define ia32_breakpoint					3
-#define ia32_overflow					4
-#define ia32_exceed_bound_range			5
-#define ia32_invalid_opcode				6
-#define ia32_no_math_coprocessor		7
-#define ia32_double_fault				8
-#define ia32_segment_overrun			9
-#define ia32_invalid_tss				10
-#define ia32_segment_not_present		11
-#define ia32_stack_segment_fault		12
-#define ia32_general_protection			13
-#define ia32_page_fault					14
-#define ia32_x87_fp_error				16
-#define ia32_alignment_check			17
-#define ia32_machine_check				18
-#define ia32_simd_exception				19
-#define ia32_virtualization_exception	20
-#define ia32_control_protection			21
+#define event_divide_error				0
+#define event_debug_exception			1
+#define event_nmi_interrupt				2
+#define event_breakpoint					3
+#define event_overflow					4
+#define event_exceed_bound_range			5
+#define event_invalid_opcode				6
+#define event_no_math_coprocessor		7
+#define event_double_fault				8
+#define event_segment_overrun			9
+#define event_invalid_tss				10
+#define event_segment_not_present		11
+#define event_stack_segment_fault		12
+#define event_general_protection			13
+#define event_page_fault					14
+#define event_x87_fp_error				16
+#define event_alignment_check			17
+#define event_machine_check				18
+#define event_simd_exception				19
+#define event_virtualization_exception	20
+#define event_control_protection			21
 
 #define ia32_cr4_vmxe			13
 #define ia32_cr4_vmxe_bit		0x2000
@@ -327,6 +330,37 @@ enum MovCrAccessType {
 
 
 //union----------------------------------
+
+typedef union _EFLAGS
+{
+    uintptr_t All;
+    struct
+    {
+        ULONG CF : 1;           // [0] Carry flag
+        ULONG Reserved1 : 1;    // [1] Always 1
+        ULONG PF : 1;           // [2] Parity flag
+        ULONG Reserved2 : 1;    // [3] Always 0
+        ULONG AF : 1;           // [4] Borrow flag
+        ULONG Reserved3 : 1;    // [5] Always 0
+        ULONG ZF : 1;           // [6] Zero flag
+        ULONG SF : 1;           // [7] Sign flag
+        ULONG TF : 1;           // [8] Trap flag
+        ULONG IF : 1;           // [9] Interrupt flag
+        ULONG DF : 1;           // [10]
+        ULONG OF : 1;           // [11]
+        ULONG IOPL : 2;         // [12-13] I/O privilege level
+        ULONG NT : 1;           // [14] Nested task flag
+        ULONG Reserved4 : 1;    // [15] Always 0
+        ULONG RF : 1;           // [16] Resume flag
+        ULONG VM : 1;           // [17] Virtual 8086 mode
+        ULONG AC : 1;           // [18] Alignment check
+        ULONG VIF : 1;          // [19] Virtual interrupt flag
+        ULONG VIP : 1;          // [20] Virtual interrupt pending
+        ULONG ID : 1;           // [21] Identification flag
+        ULONG Reserved5 : 10;   // [22-31] Always 0
+    } Fields;
+} EFLAGS, * PEFLAGS;
+
 
 typedef union _Dr6
 {
