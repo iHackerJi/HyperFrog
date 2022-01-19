@@ -8,7 +8,7 @@ void    vmexit_vmcall_handle(pFrogVmx pForgVmxEntry, PCONTEXT Context);
 extern void vmexit_handle(PCONTEXT Context)
 {
     Context->Rcx = *(PULONG64)((ULONG_PTR)Context - sizeof(Context->Rcx));
-
+    //这些地方有问题的可能性比较大
     ULONG			CpuNumber = KeGetCurrentProcessorNumber();
     pFrogVmx		pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[CpuNumber];
     pForgVmxEntry->VmxExitTime = __rdtsc();
@@ -134,7 +134,11 @@ void    vmexit_readmsr_handle(PCONTEXT Context)
     {
     case kIa32Lstar:
     {
-        marValue = Frog_getOrigKisystemcall64();//防止PG
+        if (g_FrogCpu->EnableHookMsr)
+        {
+            marValue = Frog_getOrigKisystemcall64();//防止PG
+        }
+        marValue = (__int64)__readmsr((unsigned long)Context->Rcx);
         break;
     }
         default:
@@ -172,10 +176,11 @@ void    vmexit_cpuid_handle(PCONTEXT Context)
 }
 void    vmexit_craccess_handle(PCONTEXT Context)
 {
+    FrogBreak();
     CrxVmExitQualification         CrxQualification = { 0 };
     PULONG64                           RegContext = (PULONG64)&Context->Rax;
     ULONG64                             Register = 0;
-
+    FrogBreak();
     CrxQualification.all = Frog_Vmx_Read(EXIT_QUALIFICATION);
     Register = RegContext[CrxQualification.Bits.gp_register];
 
@@ -203,7 +208,6 @@ void    vmexit_craccess_handle(PCONTEXT Context)
 }
 void    vmexit_vmcall_handle(pFrogVmx		pForgVmxEntry,PCONTEXT Context)
 {
-
     switch (Context->Rcx)
     {
         case    FrogExitTag:

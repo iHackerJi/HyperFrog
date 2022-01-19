@@ -8,9 +8,6 @@ NTSTATUS HookNtOpenProcess(
     PCLIENT_ID         ClientId
 )
 {
-    if (KeGetCurrentIrql() != PASSIVE_LEVEL)
-        return STATUS_UNSUCCESSFUL;
-
     FrogPrint("NtOpenProcess");
     return NtOpenProcess
     (

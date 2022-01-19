@@ -196,7 +196,7 @@ KiSystemServiceRepeat_Emulate PROC
     ; RAX = [OUT] number of parameters
     ; R10 = [OUT] function address
     ; R11 = [I/O] trashed
-    ;int 3;
+    int 3;
 
    ;对栈的处理，HyperBone没有处理这部分所以只能HOOK 4个参数一下的函数
    lea     rsp, [rsp-70h]  ; 分配新的栈空间存放，使用 用户栈复制来的参数
