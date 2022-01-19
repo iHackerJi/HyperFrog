@@ -100,9 +100,9 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG64)pForgVmxEntry->VmxHostStackArea + HostStackSize);
 	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
 
-    ULONG ExceptionBitmap = 0;
-    ExceptionBitmap |= 1 << VECTOR_BREAKPOINT_EXCEPTION;
-	Status|= Frog_Vmx_Write(EXCEPTION_BITMAP, ExceptionBitmap);
+   // ULONG ExceptionBitmap = 0;
+   // ExceptionBitmap |= 1 << VECTOR_BREAKPOINT_EXCEPTION;
+   // Status |= Frog_Vmx_Write(EXCEPTION_BITMAP, ExceptionBitmap);
 
 
     if (g_FrogCpu->EnableEpt)

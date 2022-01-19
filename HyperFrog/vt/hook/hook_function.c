@@ -11,7 +11,6 @@ NTSTATUS HookNtOpenProcess(
     if (KeGetCurrentIrql() != PASSIVE_LEVEL)
         return STATUS_UNSUCCESSFUL;
 
-    FrogBreak();
     FrogPrint("NtOpenProcess");
     return NtOpenProcess
     (

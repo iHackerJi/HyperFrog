@@ -36,7 +36,6 @@ int main()
         if (!driver::LoadDriver(ServiceName, DriverName))	
             break;
 
-
         tools::FrogPrintfEx("Driverload Success \r\n");
         if (comm::initComm())
         {

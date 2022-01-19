@@ -16,7 +16,6 @@ Asm_resume PROC
 Asm_resume ENDP
 
 Asm_restore_context PROC
-
 	push rbp
 	push rsi
 	push rdi

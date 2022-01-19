@@ -26,31 +26,38 @@
 #define MEMORY_TYPE_WRITE_BACK      0x00000006
 #define MEMORY_TYPE_INVALID         0x000000FF
 
-#define EVENT_INJECT_VECTOR_NMI 2 //非屏蔽中断
-#define EVENT_INJECT_VECTOR_OTHER 2 //异常
+#define ia32_uncacheable		0
+#define ia32_write_back			6
+#define ia32_external_interrupt			0
+#define ia32_non_maskable_interrupt		2
+#define ia32_hardware_exception			3
+#define ia32_software_interrupt			4
+#define ia32_prisw_exception			5
+#define ia32_software_exception			6
+#define ia32_other_event				7
 
 //异常列表
-#define event_divide_error				0
-#define event_debug_exception			1
-#define event_nmi_interrupt				2
-#define event_breakpoint					3
-#define event_overflow					4
-#define event_exceed_bound_range			5
-#define event_invalid_opcode				6
-#define event_no_math_coprocessor		7
-#define event_double_fault				8
-#define event_segment_overrun			9
-#define event_invalid_tss				10
-#define event_segment_not_present		11
-#define event_stack_segment_fault		12
-#define event_general_protection			13
-#define event_page_fault					14
-#define event_x87_fp_error				16
-#define event_alignment_check			17
-#define event_machine_check				18
-#define event_simd_exception				19
-#define event_virtualization_exception	20
-#define event_control_protection			21
+#define ia32_divide_error				0
+#define ia32_debug_exception			1
+#define ia32_nmi_interrupt				2
+#define ia32_breakpoint					3
+#define ia32_overflow					4
+#define ia32_exceed_bound_range			5
+#define ia32_invalid_opcode				6
+#define ia32_no_math_coprocessor		7
+#define ia32_double_fault				8
+#define ia32_segment_overrun			9
+#define ia32_invalid_tss				10
+#define ia32_segment_not_present		11
+#define ia32_stack_segment_fault		12
+#define ia32_general_protection			13
+#define ia32_page_fault					14
+#define ia32_x87_fp_error				16
+#define ia32_alignment_check			17
+#define ia32_machine_check				18
+#define ia32_simd_exception				19
+#define ia32_virtualization_exception	20
+#define ia32_control_protection			21
 
 #define ia32_cr4_vmxe			13
 #define ia32_cr4_vmxe_bit		0x2000
@@ -333,7 +340,7 @@ enum MovCrAccessType {
 
 typedef union _EFLAGS
 {
-    uintptr_t All;
+    ULONG All;
     struct
     {
         ULONG CF : 1;           // [0] Carry flag
@@ -362,7 +369,7 @@ typedef union _EFLAGS
 } EFLAGS, * PEFLAGS;
 
 
-typedef union _Dr6
+typedef union _DR6
 {
     unsigned long long flags;
     struct
@@ -376,7 +383,7 @@ typedef union _Dr6
         unsigned long long restricted_transactional_memory : 1;
         unsigned long long reserved_3 : 15; // always 1
     };
-}Dr6;
+}DR6;
 
 typedef union _INTERRUPTION_INFORMATION{
     ULONG32 all;

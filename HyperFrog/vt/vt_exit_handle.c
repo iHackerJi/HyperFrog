@@ -2,12 +2,13 @@
 void    vmexit_exception_handle(PCONTEXT Context);
 void    vmexit_readmsr_handle(PCONTEXT	 Context);
 void    vmexit_cpuid_handle(PCONTEXT	 Context);
-void    vmexit_craccess_handle(PCONTEXT	 Context);
-void    vmexit_vmcall_handle(pFrogVmx		pForgVmxEntry, PCONTEXT Context);
+void    vmexit_craccess_handle(PCONTEXT	Context);
+void    vmexit_vmcall_handle(pFrogVmx pForgVmxEntry, PCONTEXT Context);
 
 extern void vmexit_handle(PCONTEXT Context)
 {
     Context->Rcx = *(PULONG64)((ULONG_PTR)Context - sizeof(Context->Rcx));
+
     ULONG			CpuNumber = KeGetCurrentProcessorNumber();
     pFrogVmx		pForgVmxEntry = &g_FrogCpu->pForgVmxEntrys[CpuNumber];
     pForgVmxEntry->VmxExitTime = __rdtsc();
@@ -68,15 +69,14 @@ extern void vmexit_handle(PCONTEXT Context)
 
     if (pForgVmxEntry->HyperIsEnable == false)
     {
-        ULONG64		Rip = 0;
-        ULONG64		Rsp = 0;
+        FrogBreak();
+        ULONG64		Rip = Frog_Vmx_Read(GUEST_RIP);
+        ULONG64		Rsp = Frog_Vmx_Read(GUEST_RSP);
         ULONG64		ExitinstructionsLength = 0;
         ULONG64        Guest_Cr3 = 0;
         ULONG64        Guest_Gs_Base = 0;
         ULONG64        Guest_Fs_Base = 0;
 
-        Rip = Frog_Vmx_Read(GUEST_RIP);
-        Rsp = Frog_Vmx_Read(GUEST_RSP);
         ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
         Rip += ExitinstructionsLength;
 
@@ -92,15 +92,18 @@ extern void vmexit_handle(PCONTEXT Context)
         __writecr3(Guest_Cr3);
         __writemsr(kIa32FsBase, Guest_Fs_Base);
         __writemsr(kIa32GsBase, Guest_Gs_Base);
-
         _lgdt(&pForgVmxEntry->HostState.SpecialRegisters.Gdtr.Limit);//还原GDT边界
         __lidt(&pForgVmxEntry->HostState.SpecialRegisters.Idtr.Limit);//还原IDT边界
-        pForgVmxEntry->HyperIsEnable = true;
         __vmx_vmclear(&pForgVmxEntry->VmxVmcsAreaPhysicalAddr);
         __vmx_off();
     }
     else
     {
+        ULONG64		Rip = Frog_Vmx_Read(GUEST_RIP);
+        ULONG64		ExitinstructionsLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN);
+        Rip += ExitinstructionsLength;
+        Frog_Vmx_Write(GUEST_RIP, Rip);
+
         pForgVmxEntry->VmxExitTime = __rdtsc() - pForgVmxEntry->VmxExitTime;
         Frog_Vmx_Write(TSC_OFFSET, pForgVmxEntry->VmxExitTime);//bypass rdtsc
         Context->Rsp += sizeof(Context->Rcx);
@@ -109,6 +112,19 @@ extern void vmexit_handle(PCONTEXT Context)
 
     Asm_restore_context(Context);
     return;
+}
+
+void inject_event(unsigned long  vector, unsigned long type, bool error_code_valid, unsigned long  error_code)
+{
+    INTERRUPTION_INFORMATION Exception = { 0 };
+    Exception.fields.valid = true;
+    Exception.fields.vector = vector;
+    Exception.fields.interruption_type = type;
+    Exception.fields.error_code_valid = error_code_valid;
+    if (error_code_valid == 1) {
+        Frog_Vmx_Write(VM_ENTRY_EXCEPTION_ERROR_CODE, error_code);
+    }
+    Frog_Vmx_Write(VM_ENTRY_INTR_INFO, Exception.all);
 }
 
 void    vmexit_readmsr_handle(PCONTEXT Context)
@@ -199,15 +215,56 @@ void    vmexit_vmcall_handle(pFrogVmx		pForgVmxEntry,PCONTEXT Context)
 
 }
 
+
 void    vmexit_exception_handle(PCONTEXT	Context)
 {
+    FrogBreak();
     INTERRUPTION_INFORMATION ExceptionInfo = { 0 };
-    ExceptionInfo.all =  Frog_Vmx_Read(VM_EXIT_INTR_INFO);
+    ExceptionInfo.all =  (ULONG)Frog_Vmx_Read(VM_EXIT_INTR_INFO);
     unsigned long type = ExceptionInfo.fields.interruption_type;
     unsigned long vector = ExceptionInfo.fields.vector;
-    if (vector == event_debug_exception)
+    if (vector == ia32_debug_exception)
     {
+        if (type== ia32_prisw_exception)
+        {
+            /*
+            KiErrata361Present
+            */
+            FrogBreak();
+            DR6 dr6 = { 0 };
+            EFLAGS Eflags = { 0 };
+            dr6.flags = Context->Dr6;
+            Eflags.All = Context->EFlags;
+            if (Eflags.Fields.TF)
+            {
+                dr6.single_instruction = 1;
+                Context->Dr6 = dr6.flags;
+                inject_event(ia32_debug_exception, type, false, 0);
+                return;
+            }
 
+        }
+
+        if (type == ia32_hardware_exception)
+        {
+            if (Context->Rip == (ULONG64)FakeKiSystemCall64)
+            {
+                /*
+                    KiErrataSkx55Present
+                */
+                FrogBreak();
+                EFLAGS Eflags = { 0 };
+                Eflags.All = Context->EFlags;
+                Eflags.Fields.TF = 0;
+
+                Context->Rip = g_origKisystemcall64;
+                Context->EFlags = Eflags.All;
+                Frog_Vmx_Write(GUEST_RIP, Context->Rip);
+                return;
+            }
+            inject_event( vector,type, false, 0);
+            Frog_Vmx_Write(VM_ENTRY_INSTRUCTION_LEN, Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN));
+        }
     }
 
 }
