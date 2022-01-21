@@ -126,7 +126,7 @@ Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 
 	pForgVmxEntry->VmxOnArea = FrogExAllocatePool(PAGE_SIZE);
 	pForgVmxEntry->VmxVmcsArea = FrogExAllocatePool(PAGE_SIZE);
-	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE *2);
+	pForgVmxEntry->VmxBitMapArea.BitMap = FrogExAllocatePool(PAGE_SIZE );
 	pForgVmxEntry->VmxHostStackArea = FrogExAllocatePool(HostStackSize);
 
 	if (
@@ -137,7 +137,7 @@ Frog_AllocateHyperRegion(pFrogVmx		pForgVmxEntry, ULONG		CpuNumber)
 		)	goto __Exit;
 
     pForgVmxEntry->VmxBitMapArea.BitMapA = pForgVmxEntry->VmxBitMapArea.BitMap;
-    pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG64)pForgVmxEntry->VmxBitMapArea.BitMap + PAGE_SIZE);
+    pForgVmxEntry->VmxBitMapArea.BitMapB = (PVOID)((ULONG64)pForgVmxEntry->VmxBitMapArea.BitMap + 1024);
 	pForgVmxEntry->VmxOnAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxOnArea).QuadPart;
 	pForgVmxEntry->VmxVmcsAreaPhysicalAddr = MmGetPhysicalAddress(pForgVmxEntry->VmxVmcsArea).QuadPart;
 

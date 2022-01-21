@@ -8,6 +8,8 @@ NTSTATUS HookNtOpenProcess(
     PCLIENT_ID         ClientId
 )
 {
+
+    // FrogBreak();
     FrogPrint("NtOpenProcess");
     return NtOpenProcess
     (

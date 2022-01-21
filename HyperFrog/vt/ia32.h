@@ -26,16 +26,6 @@
 #define MEMORY_TYPE_WRITE_BACK      0x00000006
 #define MEMORY_TYPE_INVALID         0x000000FF
 
-#define ia32_uncacheable		0
-#define ia32_write_back			6
-#define ia32_external_interrupt			0
-#define ia32_non_maskable_interrupt		2
-#define ia32_hardware_exception			3
-#define ia32_software_interrupt			4
-#define ia32_prisw_exception			5
-#define ia32_software_exception			6
-#define ia32_other_event				7
-
 //“Ï≥£¡–±Ì
 #define ia32_divide_error				0
 #define ia32_debug_exception			1
@@ -61,6 +51,17 @@
 
 #define ia32_cr4_vmxe			13
 #define ia32_cr4_vmxe_bit		0x2000
+
+// This is used for defining IA-32 architectural cache types.
+#define ia32_uncacheable		0
+#define ia32_write_back			6
+#define ia32_external_interrupt			0
+#define ia32_non_maskable_interrupt		2
+#define ia32_hardware_exception			3
+#define ia32_software_interrupt			4
+#define ia32_prisw_exception			5
+#define ia32_software_exception			6
+#define ia32_other_event				7
 
 
 
@@ -338,38 +339,7 @@ enum MovCrAccessType {
 
 //union----------------------------------
 
-typedef union _EFLAGS
-{
-    ULONG All;
-    struct
-    {
-        ULONG CF : 1;           // [0] Carry flag
-        ULONG Reserved1 : 1;    // [1] Always 1
-        ULONG PF : 1;           // [2] Parity flag
-        ULONG Reserved2 : 1;    // [3] Always 0
-        ULONG AF : 1;           // [4] Borrow flag
-        ULONG Reserved3 : 1;    // [5] Always 0
-        ULONG ZF : 1;           // [6] Zero flag
-        ULONG SF : 1;           // [7] Sign flag
-        ULONG TF : 1;           // [8] Trap flag
-        ULONG IF : 1;           // [9] Interrupt flag
-        ULONG DF : 1;           // [10]
-        ULONG OF : 1;           // [11]
-        ULONG IOPL : 2;         // [12-13] I/O privilege level
-        ULONG NT : 1;           // [14] Nested task flag
-        ULONG Reserved4 : 1;    // [15] Always 0
-        ULONG RF : 1;           // [16] Resume flag
-        ULONG VM : 1;           // [17] Virtual 8086 mode
-        ULONG AC : 1;           // [18] Alignment check
-        ULONG VIF : 1;          // [19] Virtual interrupt flag
-        ULONG VIP : 1;          // [20] Virtual interrupt pending
-        ULONG ID : 1;           // [21] Identification flag
-        ULONG Reserved5 : 10;   // [22-31] Always 0
-    } Fields;
-} EFLAGS, * PEFLAGS;
-
-
-typedef union _DR6
+typedef union _Dr6
 {
     unsigned long long flags;
     struct
@@ -383,7 +353,7 @@ typedef union _DR6
         unsigned long long restricted_transactional_memory : 1;
         unsigned long long reserved_3 : 15; // always 1
     };
-}DR6;
+}Dr6;
 
 typedef union _INTERRUPTION_INFORMATION{
     ULONG32 all;

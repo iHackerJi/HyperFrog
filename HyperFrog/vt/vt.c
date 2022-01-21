@@ -56,6 +56,19 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 	Status |= Frog_Vmx_Write(VM_ENTRY_CONTROLS, VmVmentryControls.all);
 	Status |= Frog_Vmx_Write(VM_EXIT_CONTROLS, VmExitControls.all);
 
+
+	unsigned char * bitMapReadLow = 	pForgVmxEntry->VmxBitMapArea.BitMapA;
+	unsigned char* bitMapReadHigh = bitMapReadLow + 1024;
+
+    RTL_BITMAP bitMapReadLowHeader = { 0 };
+    RTL_BITMAP bitMapReadHighHeader = { 0 };
+    RtlInitializeBitMap(&bitMapReadLowHeader, (PULONG)bitMapReadLow, 1024 * 8);
+    RtlInitializeBitMap(&bitMapReadHighHeader, (PULONG)bitMapReadHigh, 1024 * 8);
+	
+    RtlSetBit(&bitMapReadLowHeader, kIa32FeatureControl);    // MSR_IA32_FEATURE_CONTROL
+    RtlSetBit(&bitMapReadLowHeader, kIa32Debugctl);          // MSR_DEBUGCTL
+    RtlSetBit(&bitMapReadHighHeader, kIa32Lstar - 0xC0000000);     // MSR_LSTAR
+	RtlSetBit(&bitMapReadHighHeader, kIa32Efer - 0xC0000000);     // MSR_LSTAR
     Status |= Frog_Vmx_Write(MSR_BITMAP, MmGetPhysicalAddress(pForgVmxEntry->VmxBitMapArea.BitMap).QuadPart);
 
 	//Segment
@@ -97,20 +110,18 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 	Status|=Frog_Vmx_Write(GUEST_RFLAGS, HostState.ContextFrame.EFlags);
 
 	//HOST RIP RSP
-	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG64)pForgVmxEntry->VmxHostStackArea + HostStackSize);
+	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG64)pForgVmxEntry->VmxHostStackArea + HostStackSize - sizeof(CONTEXT));
 	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
 
-   // ULONG ExceptionBitmap = 0;
-   // ExceptionBitmap |= 1 << VECTOR_BREAKPOINT_EXCEPTION;
-   // Status |= Frog_Vmx_Write(EXCEPTION_BITMAP, ExceptionBitmap);
-
+    ULONG ExceptionBitmap = 0;
+    ExceptionBitmap |= 1 << VECTOR_DEBUG_EXCEPTION;
+	Status|= Frog_Vmx_Write(EXCEPTION_BITMAP, ExceptionBitmap);
 
     if (g_FrogCpu->EnableEpt)
     {
         Status |= Frog_Vmx_Write(EPT_POINTER, pForgVmxEntry->VmxEptInfo.VmxEptp.Flags);
         Status |= Frog_Vmx_Write(VIRTUAL_PROCESSOR_ID, VirtualProcessorId);
     }
-
 
 	return Status;
 }

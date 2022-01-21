@@ -81,6 +81,7 @@ KiSystemCall64 ENDP
 KiSystemCall64_Emulate PROC
     ; NOTE:
     ; First 2 lines are included in SyscallEntryPoint
+    ;int 3
     mov         rsp, gs:[KERNEL_STACK_GS]   ; set kernel stack pointer
     push        2Bh                         ; push dummy SS selector
     push        qword ptr gs:[10h]          ; push user stack pointer
@@ -196,7 +197,7 @@ KiSystemServiceRepeat_Emulate PROC
     ; RAX = [OUT] number of parameters
     ; R10 = [OUT] function address
     ; R11 = [I/O] trashed
-    int 3;
+    ;int 3;
 
    ;对栈的处理，HyperBone没有处理这部分所以只能HOOK 4个参数一下的函数
    lea     rsp, [rsp-70h]  ; 分配新的栈空间存放，使用 用户栈复制来的参数

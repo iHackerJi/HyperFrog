@@ -11,6 +11,11 @@
 #define		MAKEQWORD(low, hi) ((((ULONGLONG)low) & 0xFFFFFFFF) | ((((ULONGLONG)hi) & 0xFFFFFFFF) << 32))
 #define		LODWORD(qword) (((ULONGLONG)(qword)) & 0xFFFFFFFF)
 #define		HIDWORD(qword) ((((ULONGLONG)(qword)) >> 32) & 0xFFFFFFFF)
+typedef struct _GuestStatus 
+{
+	ULONG64 Rip;
+	FlagReg Eflags;
+}GuestStatus,*pGuestStatus;
 
 typedef struct _VmxIoBitMap {
     PVOID	BitMap;
@@ -39,8 +44,6 @@ typedef struct _FrogVmx {
 	ULONG64		VmxOnAreaPhysicalAddr;
     ULONG64		VmxVmcsAreaPhysicalAddr;
 	ULONG			ProcessorNumber;
-
-	ULONG64		VmxExitTime;
 }FrogVmx, *pFrogVmx;
 
 
@@ -74,5 +77,58 @@ typedef		enum _FrogRetCode {
 	FrogUnloadError
 }FrogRetCode;
 
+
+typedef struct _Frog_GuestContext
+{
+	ULONG64 Rax;
+	ULONG64 Rcx;
+	ULONG64 Rdx;
+	ULONG64 Rbx;
+    ULONG64 Rsp;
+	ULONG64 Rbp;
+	ULONG64 Rsi;
+	ULONG64 Rdi;
+	ULONG64 R8;
+	ULONG64 R9;
+	ULONG64 R10;
+	ULONG64 R11;
+	ULONG64 R12;
+	ULONG64 R13;
+	ULONG64 R14;
+	ULONG64 R15;
+	ULONG Eflags;
+    struct _M128A Xmm0;
+    struct _M128A Xmm1;
+    struct _M128A Xmm2;
+    struct _M128A Xmm3;
+    struct _M128A Xmm4;
+    struct _M128A Xmm5;
+    struct _M128A Xmm6;
+    struct _M128A Xmm7;
+    struct _M128A Xmm8;
+    struct _M128A Xmm9;
+    struct _M128A Xmm10;
+    struct _M128A Xmm11;
+    struct _M128A Xmm12;
+    struct _M128A Xmm13;
+    struct _M128A Xmm14;
+    struct _M128A Xmm15;
+	ULONG64 Dr0;
+	ULONG64 Dr1;
+	ULONG64 Dr2;
+	ULONG64 Dr3;
+	ULONG64 Dr4;
+	ULONG64 Dr5;
+	ULONG64 Dr6;
+	ULONG64 Dr7;
+    USHORT SegCs;
+    USHORT SegDs;
+    USHORT SegEs;
+    USHORT SegFs;
+    USHORT SegGs;
+    USHORT SegSs;
+}Frog_GuestContext, *pFrog_GuestContext;
+
 FrogRetCode Frog_EnableHyper();
 FrogRetCode Frog_DisableHyper();
+
