@@ -2,6 +2,7 @@
 
 #define		FrogTag	'Frog'
 #define     FrogExitTag  'Exit'
+#define		FrogEferHookTag 'Efer'
 #define     FrogHookMsrTag  'HMsr'
 
 #define		HostStackSize PAGE_SIZE * 6
@@ -64,6 +65,7 @@ typedef struct _FrogCpu {
 	FrogMtrrFange					MtrrRange[96];
 	ULONG							NumberOfEnableMemRangs;
 	bool									EnableHookMsr;
+	bool									EnableHookEfer;
 	bool									EnableEpt;
 }FrogCpu,*pFrogCpu;
 

@@ -4,9 +4,15 @@ void    vmexit_readmsr_handle(PCONTEXT	Context);
 void    vmexit_cpuid_handle(PCONTEXT	    Context);
 void    vmexit_craccess_handle(PCONTEXT	Context);
 void    vmexit_vmcall_handle(PCONTEXT	Context);
+void    vmexit_writemsr_handle(PCONTEXT	Context);
 
 extern void	vmexit_handle(PCONTEXT	Context)
 {
+   //KIRQL irql = KeGetCurrentIrql();
+   //if (irql < DISPATCH_LEVEL) {
+   //    KeRaiseIrqlToDpcLevel(); // 提升 IRQL 等级为 DPC_LEVEL
+   //}
+
     Context->Rcx = *(PULONG64)((ULONG_PTR)Context - sizeof(Context->Rcx));
     VmxExitInfo		ExitInfo = { 0 };
     GuestStatus     Guest_Status = { 0 };
@@ -16,8 +22,13 @@ extern void	vmexit_handle(PCONTEXT	Context)
 
     switch (ExitInfo.fields.reason)
     {
+    case ExitExceptionOrNmi: //NMI中断
+        vmexit_exception_handle(&Guest_Status, Context);
+        goto __Exit;
+        break;
     case ExitExternalInterrupt:
-        vmexit_exception_handle(&Guest_Status,Context);
+        //vmexit_exception_handle(&Guest_Status,Context);
+        break;
     case	ExitCpuid:
         vmexit_cpuid_handle(Context);
         break;
@@ -31,6 +42,9 @@ extern void	vmexit_handle(PCONTEXT	Context)
         break;
     case ExitMsrRead:
         vmexit_readmsr_handle(Context);
+        break;
+    case ExitMsrWrite:
+        vmexit_writemsr_handle(Context);
         break;
     case ExitCrAccess:
         vmexit_craccess_handle(Context);
@@ -63,7 +77,17 @@ extern void	vmexit_handle(PCONTEXT	Context)
     Frog_Vmx_Write(GUEST_RIP, Guest_Status.Rip);
     Frog_Vmx_Write(GUEST_RFLAGS, Guest_Status.Eflags.all);
     Asm_restore_context(Context);
+__Exit:
+
+   //if (irql < DISPATCH_LEVEL) {
+   //    KeLowerIrql(irql);
+   //}
     return;
+}
+PULONG64 GetPteAddress(PVOID addr)
+{
+    // 1个 PTE 对应 4KB
+    return (PULONG64)(((((ULONG64)addr & 0xFFFFFFFFFFFF) >> 12) << 3) + 0xFFFFF90000000000);
 }
 
 void    inject_event(ULONG32 vector, ULONG32 type, bool deliver, ULONG32 error_code) {
@@ -72,7 +96,7 @@ void    inject_event(ULONG32 vector, ULONG32 type, bool deliver, ULONG32 error_c
     _exception.fields.vector = vector;
     _exception.fields.interruption_type = type;
     _exception.fields.error_code_valid = deliver;
-    if (deliver == 1) {
+    if (deliver == true) {
 
         Frog_Vmx_Write(VM_ENTRY_EXCEPTION_ERROR_CODE, error_code);
     }
@@ -80,22 +104,27 @@ void    inject_event(ULONG32 vector, ULONG32 type, bool deliver, ULONG32 error_c
 }
 void    vmexit_readmsr_handle(PCONTEXT	Context)
 {
-    __int64 marValue = 0;
+    __int64 msrValue = 0;
     switch (Context->Rcx)
     {
     case kIa32Lstar:
     {
-        marValue = Frog_getOrigKisystemcall64();//防止PG
+        msrValue = Frog_getOrigKisystemcall64();//防止PG
         break;
     }
         default:
         {
-            marValue = (__int64)__readmsr((unsigned long)Context->Rcx);
+            msrValue = (__int64)__readmsr((unsigned long)Context->Rcx);
             break;
         }
     }
-    Context->Rax = LODWORD(marValue);
-    Context->Rdx = HIDWORD(marValue);
+    Context->Rax = LODWORD(msrValue);
+    Context->Rdx = HIDWORD(msrValue);
+}
+void    vmexit_writemsr_handle(PCONTEXT	Context)
+{
+    __int64 msrValue = MAKEQWORD(Context->Rax, Context->Rdx);
+    __writemsr((unsigned long)Context->Rcx, msrValue);
 }
 void    vmexit_cpuid_handle(PCONTEXT	    Context)
 {
@@ -155,7 +184,6 @@ void    vmexit_craccess_handle(PCONTEXT	Context)
 }
 void    vmexit_vmcall_handle(PCONTEXT	Context)
 {
-
     switch (Context->Rcx)
     {
         case    FrogExitTag:
@@ -194,6 +222,12 @@ void    vmexit_vmcall_handle(PCONTEXT	Context)
             Asm_Jmp(Rip, Rsp);
             break;
         }
+        case FrogEferHookTag:
+        {
+            FrogBreak();
+            Frog_EferHookEnable();
+            break;
+        }
     }
 }
 void    vmexit_exception_handle(pGuestStatus     Guest_Status,PCONTEXT	Context)
@@ -202,39 +236,126 @@ void    vmexit_exception_handle(pGuestStatus     Guest_Status,PCONTEXT	Context)
     ExceptionInfo.all =  (ULONG32)Frog_Vmx_Read(VM_EXIT_INTR_INFO);
     unsigned long type = ExceptionInfo.fields.interruption_type;
     unsigned long vector = ExceptionInfo.fields.vector;
-    if (vector == ia32_debug_exception)
+    unsigned long error_code_valid =  ExceptionInfo.fields.error_code_valid;
+    FrogBreak();
+    if (type == ia32_hardware_exception)//硬件异常
     {
-        if (type == ia32_prisw_exception) 
+        switch (vector) 
         {
-            FrogBreak();
-            /*
-            KiErrata361Present
-            */
-            if (Guest_Status->Eflags.fields.tf)
+            case ia32_page_fault:// #PF
             {
-                Dr6 dr6 = { 0 };
-                dr6.flags = (ULONG)Context->Dr6;
-                dr6.single_instruction = 1;
-                Context->Dr6 = dr6.flags;
-                inject_event(ia32_debug_exception, type, false, 0);
-                Guest_Status->Rip = g_origKisystemcall64;
-                return;
+               unsigned long error_code =  (unsigned long)Frog_Vmx_Read(VM_EXIT_INTR_ERROR_CODE);
+               inject_event(vector, type, true, error_code);//不处理，直接注入
+
+               __int64 fault_addreee = Frog_Vmx_Read(EXIT_QUALIFICATION);
+                __writecr2(fault_addreee);
+
+                Frog_Vmx_Write(VM_ENTRY_INTR_INFO, ExceptionInfo.all);
+                if (error_code_valid)
+                {
+                    Frog_Vmx_Write(VM_ENTRY_EXCEPTION_ERROR_CODE,Frog_Vmx_Read(VM_EXIT_INTR_ERROR_CODE));
+                }
+                break;
+            }
+            case ia32_general_protection://#GP
+            {
+                unsigned long error_code = (unsigned long)Frog_Vmx_Read(VM_EXIT_INTR_ERROR_CODE);
+                inject_event(vector, type, true, error_code);//不处理，直接注入
+                break;
+            }
+            case ia32_invalid_opcode://#UD
+            {
+                PNT_KPROCESS   pKprocess = (PNT_KPROCESS)PsGetCurrentProcess();
+                unsigned __int64 Rip = Frog_Vmx_Read(GUEST_RIP);
+                unsigned __int64 Guest_Cr3 = Frog_Vmx_Read(GUEST_CR3);
+                unsigned __int64 OrigCr3 = __readcr3();
+                unsigned __int64 exitInstructionLength = Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN); // 退出的指令长度
+                __int64 KernelCr3 = pKprocess->DirectoryTableBase;
+                FrogBreak();
+
+                __writecr3(KernelCr3);
+
+                if (!MmIsAddressValid((void*)Rip))
+                {
+                    __writecr2(Rip);
+                    unsigned long error_code = 0;
+                    inject_event(vector, type, true, error_code);
+                    break;
+                }
+
+                void * user_liner_adderss = GetKernelModeLinerAddress(KernelCr3,Rip,10);
+
+                if (exitInstructionLength == 0x2 || exitInstructionLength == 0x3)
+                {
+                    if (IS_SYSCALL_INSTRUCTION(user_liner_adderss))
+                    {
+                        Frog_EmulateSyscall(Context);
+                    }else if (IS_SYSRET_INSTRUCTION(user_liner_adderss))
+                    {
+                        Frog_EmulateSysret(Context);
+                    }
+                    else
+                    {
+                        inject_event(vector, type, false, 0);//不处理，直接注入
+                    }
+                }
+                else
+                {
+                    inject_event(vector, type, false, 0);//不处理，直接注入
+                }
+
+                FreeKernelModeLinerAddress(user_liner_adderss,10);
+                __writecr3(OrigCr3);
+                break;
             }
         }
-
-        if (type == ia32_hardware_exception) 
+    }else if (type == ia32_software_exception)//软件异常
+    {
+        inject_event(vector, type, false, 0);
+        Frog_Vmx_Write(VM_ENTRY_INSTRUCTION_LEN, Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN));
+    }
+    else//其他异常
+    {
+        Frog_Vmx_Write(VM_ENTRY_INTR_INFO, ExceptionInfo.all);
+        if (error_code_valid) 
         {
-            FrogBreak();
-            if (Frog_Vmx_Read(GUEST_RIP) == (uintptr_t)g_origKisystemcall64) {
-                /*
-                    KiErrataSkx55Present
-                */
-                Guest_Status->Eflags.fields.tf = 0;
-                Guest_Status->Rip = g_origKisystemcall64;
-                return;
-            }
-            inject_event(vector, type, false, 0);
-            Frog_Vmx_Write(VM_ENTRY_INSTRUCTION_LEN, Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN));
+            Frog_Vmx_Write(VM_ENTRY_EXCEPTION_ERROR_CODE, Frog_Vmx_Read(VM_EXIT_INTR_ERROR_CODE));
         }
     }
+
+    //if (vector == ia32_debug_exception)
+    //{
+    //    if (type == ia32_prisw_exception) 
+    //    {
+    //        FrogBreak();
+    //        /*
+    //        KiErrata361Present
+    //        */
+    //        if (Guest_Status->Eflags.fields.tf)
+    //        {
+    //            Dr6 dr6 = { 0 };
+    //            dr6.flags = (ULONG)Context->Dr6;
+    //            dr6.single_instruction = 1;
+    //            Context->Dr6 = dr6.flags;
+    //            inject_event(ia32_debug_exception, type, false, 0);
+    //            Guest_Status->Rip = g_origKisystemcall64;
+    //            return;
+    //        }
+    //    }
+    //
+    //    if (type == ia32_hardware_exception) 
+    //    {
+    //        FrogBreak();
+    //        if (Frog_Vmx_Read(GUEST_RIP) == (uintptr_t)g_origKisystemcall64) {
+    //            /*
+    //                KiErrataSkx55Present
+    //            */
+    //            Guest_Status->Eflags.fields.tf = 0;
+    //            Guest_Status->Rip = g_origKisystemcall64;
+    //            return;
+    //        }
+    //        inject_event(vector, type, false, 0);
+    //        Frog_Vmx_Write(VM_ENTRY_INSTRUCTION_LEN, Frog_Vmx_Read(VM_EXIT_INSTRUCTION_LEN));
+    //    }
+    //}
 }

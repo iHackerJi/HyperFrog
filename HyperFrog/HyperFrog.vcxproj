@@ -229,6 +229,7 @@
     <ClCompile Include="comm\comm.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="tools\tools.c" />
+    <ClCompile Include="vt\hook\efer_hook.c" />
     <ClCompile Include="vt\hook\hook_function.c" />
     <ClCompile Include="vt\hook\msr_hook.c" />
     <ClCompile Include="vt\vt.c" />
@@ -241,6 +242,7 @@
     <ClInclude Include="include\ExportStruct.h" />
     <ClInclude Include="include\public.h" />
     <ClInclude Include="tools\tools.h" />
+    <ClInclude Include="vt\hook\efer_hook.h" />
     <ClInclude Include="vt\hook\hook_function.h" />
     <ClInclude Include="vt\hook\hook_table.h" />
     <ClInclude Include="vt\hook\KiSystemCall64.h" />

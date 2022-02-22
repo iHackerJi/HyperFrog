@@ -47,6 +47,9 @@
     <Filter Include="Driver Files\VT\Hook\HookFunction">
       <UniqueIdentifier>{1e08872a-c0de-4856-863e-828f07881ea2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Driver Files\VT\Hook\EferHook">
+      <UniqueIdentifier>{0635842e-dac2-424d-b23c-cba5db2bc3e5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vt\vt.c">
@@ -72,6 +75,9 @@
     </ClCompile>
     <ClCompile Include="vt\hook\hook_function.c">
       <Filter>Driver Files\VT\Hook\HookFunction</Filter>
+    </ClCompile>
+    <ClCompile Include="vt\hook\efer_hook.c">
+      <Filter>Driver Files\VT\Hook\EferHook</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -113,6 +119,9 @@
     </ClInclude>
     <ClInclude Include="vt\hook\hook_function.h">
       <Filter>Driver Files\VT\Hook\HookFunction</Filter>
+    </ClInclude>
+    <ClInclude Include="vt\hook\efer_hook.h">
+      <Filter>Driver Files\VT\Hook\EferHook</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

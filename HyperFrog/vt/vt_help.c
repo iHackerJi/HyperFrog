@@ -565,6 +565,11 @@ Frog_Hook()
 		FrogPrint("EnableHookMsr");
         Frog_MsrHookEnable();
     }
+	if (g_FrogCpu->EnableHookEfer)
+	{
+        FrogPrint("EnableHookEfer");
+		Frog_VmCall(FrogEferHookTag, 0, 0, 0);
+	}
 }
 
 void

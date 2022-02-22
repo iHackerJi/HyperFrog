@@ -81,7 +81,8 @@ KiSystemCall64 ENDP
 KiSystemCall64_Emulate PROC
     ; NOTE:
     ; First 2 lines are included in SyscallEntryPoint
-    ;int 3
+    int 3
+   
     mov         rsp, gs:[KERNEL_STACK_GS]   ; set kernel stack pointer
     push        2Bh                         ; push dummy SS selector
     push        qword ptr gs:[10h]          ; push user stack pointer

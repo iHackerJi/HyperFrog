@@ -25,6 +25,7 @@
 #include "comm.h"
 #include "hook_function.h"
 #include "msr_hook.h"
+#include "efer_hook.h"
 #include "hook_table.h"
 #include "KiSystemCall64.h"
 

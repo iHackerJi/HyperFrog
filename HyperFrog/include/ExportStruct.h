@@ -1,5 +1,11 @@
 #pragma once
 
+typedef struct _NT_KPROCESS
+{
+    struct _DISPATCHER_HEADER Header; 
+    struct _LIST_ENTRY ProfileListHead;
+    ULONGLONG DirectoryTableBase;                              
+}NT_KPROCESS,*PNT_KPROCESS;
 typedef struct _KDESCRIPTOR
 {
     USHORT Pad[3];

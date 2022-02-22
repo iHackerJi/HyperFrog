@@ -59,7 +59,8 @@ NTSTATUS	DriverEntry(PDRIVER_OBJECT	pDriverObj,PUNICODE_STRING	pReg)
     }
 
     g_FrogCpu->EnableEpt = true;
-    g_FrogCpu->EnableHookMsr = true;
+    g_FrogCpu->EnableHookMsr = false;
+    g_FrogCpu->EnableHookEfer = true;
 
 	fStatus = Frog_EnableHyper();
 

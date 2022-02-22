@@ -26,6 +26,43 @@
 #define MEMORY_TYPE_WRITE_BACK      0x00000006
 #define MEMORY_TYPE_INVALID         0x000000FF
 
+#define X86_FLAGS_CF            (1 << 0)
+#define X86_FLAGS_PF            (1 << 2)
+#define X86_FLAGS_AF            (1 << 4)
+#define X86_FLAGS_ZF            (1 << 6)
+#define X86_FLAGS_SF            (1 << 7)
+#define X86_FLAGS_TF            (1 << 8)
+#define X86_FLAGS_IF            (1 << 9)
+#define X86_FLAGS_DF            (1 << 10)
+#define X86_FLAGS_OF            (1 << 11)
+#define X86_FLAGS_STATUS_MASK   (0xfff)
+#define X86_FLAGS_IOPL_MASK     (3 << 12)
+#define X86_FLAGS_IOPL_SHIFT    (12)
+#define X86_FLAGS_NT            (1 << 14)
+#define X86_FLAGS_RF            (1 << 16)
+#define X86_FLAGS_VM            (1 << 17)
+#define X86_FLAGS_AC            (1 << 18)
+#define X86_FLAGS_VIF           (1 << 19)
+#define X86_FLAGS_VIP           (1 << 20)
+#define X86_FLAGS_ID            (1 << 21)
+#define X86_FLAGS_RESERVED_ONES 0x2
+#define X86_FLAGS_RESERVED      0xffc0802a
+
+#define X86_FLAGS_RESERVED_BITS 0xffc38028
+#define X86_FLAGS_FIXED         0x00000002
+
+
+// 是否为 SysRet 指令
+#define IS_SYSRET_INSTRUCTION(Code) \
+(*((PUINT8)(Code) + 0) == 0x48 && \
+*((PUINT8)(Code) + 1) == 0x0F && \
+*((PUINT8)(Code) + 2) == 0x07)
+
+// 是否为 SysCall 指令
+#define IS_SYSCALL_INSTRUCTION(Code) \
+(*((PUINT8)(Code) + 0) == 0x0F && \
+*((PUINT8)(Code) + 1) == 0x05)
+
 //异常列表
 #define ia32_divide_error				0
 #define ia32_debug_exception			1
@@ -75,7 +112,7 @@ typedef enum _VECTOR_EXCEPTION
     VECTOR_BREAKPOINT_EXCEPTION = 3,
     VECTOR_OVERFLOW_EXCEPTION = 4,
     VECTOR_BOUND_EXCEPTION = 5,
-    VECTOR_INVALID_OPCODE_EXCEPTION = 6,
+    VECTOR_INVALID_OPCODE_EXCEPTION = 6, //#UD异常
     VECTOR_DEVICE_NOT_AVAILABLE_EXCEPTION = 7,
     VECTOR_DOUBLE_FAULT_EXCEPTION = 8,
     VECTOR_COPROCESSOR_SEGMENT_OVERRUN = 9,
@@ -338,6 +375,20 @@ enum MovCrAccessType {
 
 
 //union----------------------------------
+
+typedef union _Efer
+{
+    unsigned __int64 all;
+    struct
+    {
+        unsigned sce : 1;				//!< [0]  是否启用 x64 的 syscall/sysret 指令
+        unsigned reserved1 : 7;			//!< [1:7]
+        unsigned lme : 1;				//!< [8]  Enables IA-32e mode operation.
+        unsigned reserved2 : 1;			//!< [9]
+        unsigned lma : 1;				//!< [10] Indicates IA-32e mode is active when set.
+        unsigned nxe : 1;				//!< [11] 是否启用执行禁用位(XD)
+    }Bits;
+}Efer;
 
 typedef union _Dr6
 {

@@ -58,7 +58,7 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 
 
 	unsigned char * bitMapReadLow = 	pForgVmxEntry->VmxBitMapArea.BitMapA;
-	unsigned char* bitMapReadHigh = bitMapReadLow + 1024;
+	unsigned char* bitMapReadHigh = pForgVmxEntry->VmxBitMapArea.BitMapB;
 
     RTL_BITMAP bitMapReadLowHeader = { 0 };
     RTL_BITMAP bitMapReadHighHeader = { 0 };
@@ -113,15 +113,22 @@ Frog_SetupVmcs(pFrogVmx pForgVmxEntry)
 	Status|=Frog_Vmx_Write(HOST_RSP, (ULONG64)pForgVmxEntry->VmxHostStackArea + HostStackSize - sizeof(CONTEXT));
 	Status|=Frog_Vmx_Write(HOST_RIP, (ULONG64)VmxEntryPointer);
 
-    ULONG ExceptionBitmap = 0;
-    ExceptionBitmap |= 1 << VECTOR_DEBUG_EXCEPTION;
-	Status|= Frog_Vmx_Write(EXCEPTION_BITMAP, ExceptionBitmap);
-
     if (g_FrogCpu->EnableEpt)
     {
         Status |= Frog_Vmx_Write(EPT_POINTER, pForgVmxEntry->VmxEptInfo.VmxEptp.Flags);
         Status |= Frog_Vmx_Write(VIRTUAL_PROCESSOR_ID, VirtualProcessorId);
     }
+    Status |= Frog_Vmx_Write(GUEST_EFER, (ULONG64)__readmsr(kIa32Efer));
+    Status |= Frog_Vmx_Write(HOST_EFER, (ULONG64)__readmsr(kIa32Efer));
+
+	//if (g_FrogCpu->EnableHookEfer)
+	//{
+	//	Status |= Frog_Vmx_Write(GUEST_EFER, (ULONG64)__readmsr(kIa32Efer));
+	//	Status |= Frog_Vmx_Write(HOST_EFER, (ULONG64)__readmsr(kIa32Efer));
+    //    ULONG ExceptionBitmap = 0;
+    //    ExceptionBitmap |= 1 << VECTOR_INVALID_OPCODE_EXCEPTION;//À¹½ØUDÒì³£
+    //    Status |= Frog_Vmx_Write(EXCEPTION_BITMAP, ExceptionBitmap);
+	//}
 
 	return Status;
 }
